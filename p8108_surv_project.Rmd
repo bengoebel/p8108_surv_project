@@ -1,0 +1,52 @@
+---
+title: "P8108 Group 2 Survival Analysis Project"
+author: 
+  - Yiming Zhao (yz3955) 
+  - Wenshan Qu (wq2160)
+  - Tucker Morgan (tlm2152)
+  - Junzhe Shao (js5959)
+  - Benjamin Goebel (bpg2118)
+date: "2022-10-07"
+output: pdf_document
+---
+
+```{r echo=FALSE}
+## Packages
+```
+
+
+## Introduction
+
+## Methods
+
+## Exploratory Data Analysis
+
+## Cross Validation
+
+## Cox/Cox with elastic net
+
+## Random survival forest
+
+## Conformalized survival analysis
+
+## Supplemental analyses
+
+## Results
+
+## Exploratory Data Analysis
+
+## Cross Validation
+
+## Cox/Cox with elastic net
+
+## Random survival forest
+
+## Conformalized survival analysis
+
+## Supplemental analyses
+
+## Discussion
+
+## How our results compare with past research
+
+## Conclusion
