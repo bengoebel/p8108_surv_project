@@ -25,7 +25,11 @@ rotterdam_training <- training(rotterdam_split)
 rotterdam_test <- testing(rotterdam_split)
 ```
 
-## Perform 10-fold Cross-Validation
+## Perform 10-fold Cross-Validation  
+The output contains 1 row for each fold/repeat. So, 10 folds * 5 repeats = 50
+rows. The split_analysis column is a list column containing a data frame for
+each row with 9 folds combined, and the split_assessment column is a list column 
+containing a data frame for each row with 1 fold.
 ```{r}
 set.seed(2022)
 
