@@ -171,6 +171,25 @@ plot(KM, conf.int = FALSE, mark.time = TRUE,
      main = "Kaplan-Meier Survival Estimate", cex.lab = 1.5, cex.main = 1.5)
 ```
 
+```{r}
+# make Kaplan-Meier estimates
+kmfit <- survfit(Surv(dtime, death) ~ hormon, data = rotterdam,type=c("kaplan-meier"))
+# print Kaplan-Meier table 
+#summary(kmfit)
+```
+
+```{r}
+plot(kmfit,
+ylab="S(t)",
+xlab="days to death or last follow-up",
+main = "Kaplan Meier estimates of Breast cancer survival by hormonal treatment assignments for rotterdam data",
+col = c("blue","red"))
+
+ggsurvplot(kmfit, conf.int = 0.95, censor= F,title = " KM survival by hormonal treatment assignments",
+           ggtheme = theme_minimal())
+```
+
+
 ### Log-rank Test
 
 The null hypothesis of our log-rank test is: $H_0: S_1(t) = S_0(t)$, where $S_1(t)$ is the survival function of hormon treatment group, $S_0(t)$ is the survival function of control group.
