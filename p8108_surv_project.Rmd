@@ -19,6 +19,7 @@ library(tidymodels)
 library(glmnet)
 library(ranger)
 library(survminer)
+library(arsenal)
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
@@ -63,7 +64,10 @@ $$\lambda\Big(\alpha \sum |\beta_i| + \frac{1}{2}(1 - \alpha)\sum\beta_i^2\Big)$
 where $\lambda$ represents our penalty coefficient and $\alpha$ is the mixing parameter for the two regularization methods. This penalty helps to avoid over-fitting of our data. The algorithm used here in `glmnet` uses the Breslow approximation to handle ties. For more details on the derivation of this term and the algorithm used to fit the penalized Cox PH model, see Simon et al. (2011).
 
 ## Exploratory Data Analysis
-add change
+```{r results='asis'}
+print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death, rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
+
+```
 ## Cross-Validation
 
 ## Cox/Cox with elastic net
