@@ -7,7 +7,9 @@ author:
   - Junzhe Shao (js5959)
   - Benjamin Goebel (bpg2118)
 date: "2022-10-19"
-output: pdf_document
+output:
+    pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r setup, message=FALSE, warning = FALSE}
@@ -15,6 +17,8 @@ library(survival)
 library(tidyverse)
 library(tidymodels)
 library(glmnet)
+library(ranger)
+library(survminer)
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
@@ -116,9 +120,74 @@ In our model, we find increased hazard treatment effects for both hormonal treat
 
 ## Random survival forest
 
+The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior.
+
+```{r}
+## Random Survival Forest
+rsf <- ranger(Surv(time = dtime, event = death) ~ ., 
+              data = rotterdam_trn_d, 
+              num.trees = 300, 
+              min.node.size = 15)
+
+## Remove variables not for prediction, and the outcome
+rotterdam_test_d <- 
+  rotterdam_test %>% 
+  select(-rtime, -recur, -pid, -death)
+
+## Make prediction on all the test data points
+pred_rsf <- predict(rsf, rotterdam_test_d, type = "response")
+# Look at individual 7
+pred_ref_7 <- data.frame(
+  time = pred_rsf$unique.death.times,
+  survival = pred_rsf$survival[7,])
+head(pred_ref_7) %>% knitr::kable(align = "c")
+
+plot(pred_ref_7$time, pred_ref_7$survival, 
+     xlab = "Time", ylab = "Survival Probability",
+     main = "Survival Prediction for Patient 7")
+# Find estimated median survival time for individual 7
+head(pred_ref_7[pred_ref_7$survival <= 0.5,]) %>% knitr::kable(align = "c") #1163
+# See the truth of individual 7
+rotterdam_test[7,] %>% knitr::kable(align = "c")
+```
+
+With `ranger` package, we trained the random survival forest with training dataset used for survival prediction. As a non-parametric method, there is no parameters in RSF that could be interpreted. The ultimate goal of RSF is to predict the survival probability function of a given data point based on its covariate vector. Compared to semi-parametric Cox-PH model which forces the outcome and the covariates to have a special connection, the RSF makes prediction based on the survival time of training data points that shares similar propensity with the given input data point.
+
+Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the median survival time is 1163 days.
+
 ## Conformalized survival analysis
 
 ## Supplemental analyses
+
+### Kaplan-Meier Survival Estimate
+```{r}
+KM = survfit(Surv(dtime, death) ~ 1, data = rotterdam)
+plot(KM, conf.int = FALSE, mark.time = TRUE,
+     xlab = "Days", ylab = "Survival Probability",
+     main = "Kaplan-Meier Survival Estimate", cex.lab = 1.5, cex.main = 1.5)
+```
+
+### Log-rank Test
+
+The null hypothesis of our log-rank test is: $H_0: S_1(t) = S_0(t)$, where $S_1(t)$ is the survival function of hormon treatment group, $S_0(t)$ is the survival function of control group.
+
+```{r}
+logrank <- survdiff(Surv(dtime, death) ~ hormon, data = rotterdam)
+logrank
+logrank$pvalue
+```
+
+The test statistic is 23.7, and the corresponding p-value is $1.133^{-6} \ll 0.05$, thus we reject the null and conclude that we are 95% confident that $S_1(t) \ne S_0(t$. And since the test statistic is positive, we can conclude that the hormon treatment is significantly effective to breast cancer.
+
+```{r}
+ggsurvplot(survfit(Surv(dtime,death) ~ hormon, data = rotterdam), 
+           conf.int = TRUE,
+           legend = c("bottom"),
+           legend.title = c("Treatment"),
+           legend.labs = c("hormon", "control")) +
+  ggtitle("Survival Curve of Hormon and Control group")
+```
+
 
 ## Results
 
