@@ -87,40 +87,74 @@ cv_coxfit <- cv.glmnet(cox_trn_x, cox_trn_y, family = "cox", type.measure = "dev
 par(mar = c(4,4,5,1))
 plot(cv_coxfit, main = "Cross-Validated Error Plot")
 
-coxfit <- glmnet(cox_trn_x, cox_trn_y, family = "cox", alpha = cv_coxfit$lambda.min)
+coxnetfit <- glmnet(cox_trn_x, cox_trn_y, family = "cox", alpha = cv_coxfit$lambda.min)
 
 par(mar = c(4,4,5,1))
-plot(coxfit, xvar = "lambda",
+plot(coxnetfit, xvar = "lambda",
      main = "Cox PH Elastic Net Coefficients")
 abline(v = cv_coxfit$lambda.min, lty = 2)
 
-coxfit_df <- 
+coxnetfit_df <- 
   data.frame(
-    "coef" = as.vector(coef(coxfit, s = cv_coxfit$lambda.min)),
-    "exp_coef" = as.vector(coef(coxfit, s = cv_coxfit$lambda.min)) %>% exp()
+    "coef" = as.vector(coef(coxnetfit, s = cv_coxfit$lambda.min)),
+    "exp_coef" = as.vector(coef(coxnetfit, s = cv_coxfit$lambda.min)) %>% exp()
 )
 
-rownames(coxfit_df) <- labels(coef(coxfit, s = cv_coxfit$lambda.min))[[1]]
+rownames(coxnetfit_df) <- labels(coef(coxnetfit, s = cv_coxfit$lambda.min))[[1]]
 
-coxfit_df %>% round(digits = 4) %>% 
+coxnetfit_df %>% round(digits = 4) %>% 
   knitr::kable(caption = "Cox Proportion Hazard Elastic Net Coefficients")
 ```
 
-Note we are unable to provide standard errors for these estimates. Based on the results above, we see hazard ratios of:
+In the table above, we can see that the estrogen receptors covariate is selected out with a null value of 0 or $\exp(coef) = 1$. We can fit a cox proportional hazard model using only the selected covariates in the `coxph` function to find unbiased estimates of the coefficients along with standard errors and confidence intervals. 
 
-* `r round(coxfit_df[1, 2], digits = 4)` for year, a hazard reduction of `r (1 - round(coxfit_df[1, 2], digits = 4))*100`% for a one-year increase in year of surgery;
-* `r round(coxfit_df[2, 2], digits = 4)` for age, a hazard increase of `r (round(coxfit_df[2, 2], digits = 4) - 1)*100`% for a one-year increase in patient age at surgery;
-* `r round(coxfit_df[3, 2], digits = 4)` for menopausal status, a hazard increase of `r (round(coxfit_df[3, 2], digits = 4) - 1)*100`% for a postmenopausal patient compared to a pre-menopausal patient, holding all else equal;
-* `r round(coxfit_df[4, 2], digits = 4)` for tumor size of 20-50 mm, a hazard increase of `r (round(coxfit_df[4, 2], digits = 4) - 1)*100`% for a tumor of size 20-50 mm compared to a tumor less than 20 mm;
-* `r round(coxfit_df[5, 2], digits = 4)` for tumor size of greater than 50 mm, a hazard increase of `r (round(coxfit_df[4, 2], digits = 4) - 1)*100`% for a tumor of size greater than 50 units compared to a tumor less than 20 mm;
-* `r round(coxfit_df[6, 2], digits = 4)` for the differentiation grade, a hazard increase of `r (round(coxfit_df[6, 2], digits = 4) - 1)*100`% for a one-unit increase in differentiation grade;
-* `r round(coxfit_df[7, 2], digits = 4)` for the number of positive lymph nodes, a `r (round(coxfit_df[7, 2], digits = 4) - 1)*100`% hazard increase for each additional positive lymph node;
-* `r round(coxfit_df[8, 2], digits = 4)` for the progesterone receptors (fmol/l), a hazard reduction of `r (1 - round(coxfit_df[8, 2], digits = 4))*100`% for a one-unit increase in progesterone receptors;
-* `r round(coxfit_df[9, 2], digits = 4)` for estrogen receptors (fmol/l), a hazard change of `r (1 - round(coxfit_df[9, 2], digits = 4))*100`% for each one-unit increase in estrogen receptors;
-* `r round(coxfit_df[10, 2], digits = 4)` for hormonal treatment, a hazard increase of `r (round(coxfit_df[10, 2], digits = 4) - 1)*100`% for patients who received hormonal therapy compared to patients who did not;
-* `r round(coxfit_df[11, 2], digits = 4)` for chemotherapy treatment, a hazard increase of `r (round(coxfit_df[11, 2], digits = 4) - 1)*100`% for patients who received chemotherapy compared to patients who did not.
+```{r coxph confint}
+coxfit <- coxph(Surv(dtime, death) ~ year + age + meno + size + grade + nodes + pgr + hormon + chemo,
+                data = rotterdam_training, ties = "breslow")
+coxfit %>% 
+  broom::tidy() %>% 
+  mutate(estimate = exp(estimate))
 
-In our model, we find increased hazard treatment effects for both hormonal treatment and chemotherapy. While we might expect these treatments to reduce hazard, it is possible these results are confounded by treatment assignment. In other words, case severity might impact both treatment assignment and treatment response.
+confint(coxfit) %>% exp() %>% knitr::kable()
+```
+
+In our (minimum error) model, we find significant effects for year of surgery, age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and progesterone receptors. The largest magnitude effects come from increasing size of tumor.
+
+Below, we see the analogous results for a "1se" rule model.
+
+```{r cox elastic net 1se}
+coxnetfit_1se <- glmnet(cox_trn_x, cox_trn_y, family = "cox", alpha = cv_coxfit$lambda.1se)
+
+par(mar = c(4,4,5,1))
+plot(coxnetfit_1se, xvar = "lambda",
+     main = "Cox PH Elastic Net Coefficients")
+abline(v = cv_coxfit$lambda.1se, lty = 2)
+
+coxnetfit_1se_df <- 
+  data.frame(
+    "coef" = as.vector(coef(coxnetfit_1se, s = cv_coxfit$lambda.1se)),
+    "exp_coef" = as.vector(coef(coxnetfit_1se, s = cv_coxfit$lambda.1se)) %>% exp()
+)
+
+rownames(coxnetfit_1se_df) <- labels(coef(coxnetfit_1se, s = cv_coxfit$lambda.1se))[[1]]
+
+coxnetfit_1se_df %>% round(digits = 4) %>% 
+  knitr::kable(caption = "Cox Proportion Hazard Elastic Net Coefficients (1se)")
+```
+
+Here, we remove `er` and `chemo` and find the following results.
+
+```{r coxph 1se confint}
+coxfit_1se <- coxph(Surv(dtime, death) ~ year + age + meno + size + grade + nodes + pgr + hormon,
+                data = rotterdam_training, ties = "breslow")
+coxfit_1se %>% 
+  broom::tidy() %>% 
+  mutate(estimate = exp(estimate))
+
+confint(coxfit_1se) %>% exp() %>% knitr::kable()
+```
+
+Here we again find significant effects for year of surgery, age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and pgr.
 
 ## Random survival forest
 
