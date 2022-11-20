@@ -1,0 +1,77 @@
+---
+title: |
+  | P8108 Survival Analysis Presentation
+  | (Title TBD)
+author: |
+  | Yiming Zhao (yz3955), Wenshan Qu (wq2160)
+  | Tucker Morgan (tlm2152), Junzhe Shao (js5959),
+  | and Benjamin Goebel (bpg2118)
+date: '2022-11-20'
+output:
+  beamer_presentation:
+    colortheme: "dolphin"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(survival)
+library(tidyverse)
+library(tidymodels)
+```
+
+## Presentation Outline
+
+- Background / Research question of interest
+- Exploratory Analysis
+- Methods
+  - Cox Proportional Hazard with Elastic Net
+  - Survival Random Forest
+  - Conformalized Analysis
+- Results
+- Discussion
+
+## Background
+
+- We analyzed the Rotterdam data set from the `survival` package in R. This data includes `r nrow(rotterdam)` breast cancer patients from the Rotterdam tumor bank.
+- Notable measurements include age, menopausal status, tumor size, number of effected lymph nodes, and other baseline variables.
+- Interventions were hormone treatment and chemotherapy.
+- Subjects were followed until death or loss to follow up with occurrences of remission and death being recorded.
+
+```{r example slide table}
+set.seed(2022)
+
+rotterdam_split <- initial_split(rotterdam, prop = 0.8, strata = death)
+rotterdam_training <- training(rotterdam_split)
+rotterdam_test <- testing(rotterdam_split)
+
+head(rotterdam_training, 5) %>% 
+  select(-1) %>% 
+  remove_rownames() %>% 
+  knitr::kable() %>% 
+  kableExtra::kable_styling(latex_options = "scale_down")
+```
+
+## Exploratory Analysis
+
+>- Example: You can add arrows ">-"
+>- and make bullet points
+>- appear on subsequent slides
+
+<!-- This is a comment that won't appear in the presentation -->
+
+## Methods
+
+- We can use code chunks to illustrate plots
+
+```{r example plot}
+rotterdam_training %>% 
+  ggplot(aes(x = age, y = dtime)) +
+  geom_point()
+```
+
+## Methods
+
+- Or you can also insert images like this (but the image dimensions have to be correct):
+
+![](images/example_plot.png)
+
