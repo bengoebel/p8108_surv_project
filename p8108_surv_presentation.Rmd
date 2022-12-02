@@ -17,6 +17,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(survival)
 library(tidyverse)
 library(tidymodels)
+library(arsenal)
 ```
 
 ## Presentation Outline
@@ -54,8 +55,13 @@ head(rotterdam_training, 5) %>%
 ## Exploratory Analysis
 
 >- Example: You can add arrows ">-"
->- and make bullet points
->- appear on subsequent slides
+
+```{r results='asis'}
+print(summary(tableby(~age+meno+size+grade+nodes+pgr+er+chemo+hormon+dtime+death,
+                      rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
+
+```
+
 
 <!-- This is a comment that won't appear in the presentation -->
 
