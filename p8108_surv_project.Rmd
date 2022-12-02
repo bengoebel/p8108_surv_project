@@ -176,7 +176,9 @@ set.seed(2023)
 rsf <- ranger(Surv(time = dtime, event = death) ~ ., 
               data = rotterdam_training, 
               num.trees = 300, 
-              min.node.size = 15)
+              min.node.size = 15,
+              importance = "permutation",
+              scale.permutation.importance = TRUE)
 
 ## Remove variables not for prediction, and the outcome
 rotterdam_test_d <- 
@@ -195,14 +197,19 @@ plot(pred_ref_7$time, pred_ref_7$survival,
      xlab = "Time", ylab = "Survival Probability",
      main = "Survival Prediction for Patient 7")
 # Find estimated median survival time for individual 7
-head(pred_ref_7[pred_ref_7$survival <= 0.5,]) %>% knitr::kable(align = "c") #1163
+head(pred_ref_7[pred_ref_7$survival <= 0.5,]) %>% knitr::kable(align = "c") #1217
 # See the truth of individual 7
 rotterdam_test[7,] %>% knitr::kable(align = "c")
+
+# Variable Importance
+barplot(sort(ranger::importance(rsf), decreasing = FALSE),
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan", "blue"))(12))
 ```
 
 With `ranger` package, we trained the random survival forest with training dataset used for survival prediction. As a non-parametric method, there is no parameters in RSF that could be interpreted. The ultimate goal of RSF is to predict the survival probability function of a given data point based on its covariate vector. Compared to semi-parametric Cox-PH model which forces the outcome and the covariates to have a special connection, the RSF makes prediction based on the survival time of training data points that shares similar propensity with the given input data point.
 
-Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the median survival time is 1163 days.  
+Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the median survival time is 1217 days.  
 
 ## Comparison of Cox Proportional-Hazards Elastic Net with Random Survival Forest  
 We compared the Cox proportional-hazards elastic net model with the random 
