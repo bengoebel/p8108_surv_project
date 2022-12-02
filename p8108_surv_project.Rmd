@@ -56,6 +56,8 @@ rotterdam_folds <- rotterdam_folds %>%
 
 ## Introduction
 
+For our target population is hormone treatment an effective therapy in breast cancer survival? For our target population, is chemotherapy an effective therapy in breast cancer survival? How do predictions from non-parametric models like the random forest compare to semi-parametric in the Cox proportional hazard model?
+
 ## Methods
 
 The dataset of interest for this analysis comes from the Rotterdam tumor bank, including data from `r nrow(rotterdam)` breast cancer patients. Follow up time for patients varied from just 1 month to as long as 231 months. Several prognostic variables are recorded including year of surgery, age at surgery, menopausal status (pre- or post-), tumor size (mm), differentiation grade, number of positive lymph nodes, progesterone receptors (fmol/l), estrogen receptors (fmol/l), and indicators for hormonal treatment and chemotherapy treatment. The outcome considered in this analysis was patient death.
