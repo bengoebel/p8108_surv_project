@@ -304,10 +304,46 @@ ggsurvplot(kmfit, conf.int = 0.95, censor= F,title = " KM survival by hormonal t
 
 The null hypothesis of our log-rank test is: $H_0: S_1(t) = S_0(t)$, where $S_1(t)$ is the survival function of hormon treatment group, $S_0(t)$ is the survival function of control group.
 
+**Combined**
+
 ```{r}
-logrank <- survdiff(Surv(dtime, death) ~ hormon, data = rotterdam)
-logrank
-logrank$pvalue
+# Add 1
+rotterdam1 <- 
+  rotterdam %>% 
+  mutate(
+    trt_label = case_when(
+      hormon == 1 & chemo == 1 ~ "hormon+chemo",
+      hormon == 1 & chemo == 0 ~ "hormon",
+      hormon == 0 & chemo == 1 ~ "chemo",
+      hormon == 0 & chemo == 0 ~ "none"
+    )
+  )
+
+table(rotterdam1$trt_label)
+```
+
+```{r}
+# Add 2
+logrank1 <- survdiff(Surv(dtime, death) ~ trt_label, data = rotterdam1)
+logrank1
+logrank1$pvalue
+```
+
+```{r}
+# Add 3
+ggsurvplot(survfit(Surv(dtime,death) ~ trt_label, data = rotterdam1), 
+           conf.int = TRUE,
+           legend = c("bottom"),
+           legend.title = c("Treatment")) +
+  ggtitle("Survival Curve of Hormon and Control group")
+```
+
+**Hormon**
+
+```{r}
+logrank2 <- survdiff(Surv(dtime, death) ~ hormon, data = rotterdam)
+logrank2
+logrank2$pvalue
 ```
 
 The test statistic is 23.7, and the corresponding p-value is $1.133^{-6} \ll 0.05$, thus we reject the null and conclude that we are 95% confident that $S_1(t) \ne S_0(t$. And since the test statistic is positive, we can conclude that the hormon treatment is significantly effective to breast cancer.
@@ -319,6 +355,23 @@ ggsurvplot(survfit(Surv(dtime,death) ~ hormon, data = rotterdam),
            legend.title = c("Treatment"),
            legend.labs = c("hormon", "control")) +
   ggtitle("Survival Curve of Hormon and Control group")
+```
+
+**Chemo**
+
+```{r}
+logrank3 <- survdiff(Surv(dtime, death) ~ chemo, data = rotterdam)
+logrank3
+logrank3$pvalue
+```
+
+```{r}
+ggsurvplot(survfit(Surv(dtime,death) ~ chemo, data = rotterdam), 
+           conf.int = TRUE,
+           legend = c("bottom"),
+           legend.title = c("Treatment"),
+           legend.labs = c("chemo", "control")) +
+  ggtitle("Survival Curve of Chemo and Control group")
 ```
 
 
