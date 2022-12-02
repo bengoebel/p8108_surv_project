@@ -6,7 +6,7 @@ author:
   - Tucker Morgan (tlm2152)
   - Junzhe Shao (js5959)
   - Benjamin Goebel (bpg2118)
-date: "2022-10-19"
+date: "2022-12-1"
 output:
     pdf_document:
     latex_engine: xelatex
@@ -23,13 +23,19 @@ library(arsenal)
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
-## Train Test Split
-```{r train test split}
+## Train Validation Test Split
+```{r train validation test split}
 set.seed(2022)
 
-rotterdam_split <- initial_split(rotterdam, prop = 0.8, strata = death)
+rotterdam_split <- initial_split(select(rotterdam, -rtime, -recur, -pid), 
+                                 prop = 0.8, strata = death)
 rotterdam_training <- training(rotterdam_split)
 rotterdam_test <- testing(rotterdam_split)
+
+rotterdam_train_val_split <- initial_split(rotterdam_training, 
+                                           prop = 0.8, strata = death)
+rotterdam_training <- training(rotterdam_train_val_split)
+rotterdam_validation <- testing(rotterdam_train_val_split)
 ```
 
 ## Perform 10-fold Cross-Validation  
@@ -65,7 +71,8 @@ where $\lambda$ represents our penalty coefficient and $\alpha$ is the mixing pa
 
 ## Exploratory Data Analysis
 ```{r results='asis'}
-print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death, rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
+print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death,
+                      rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
 
 ```
 ## Cross-Validation
@@ -74,13 +81,9 @@ print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death,
 
 ```{r cox elastic net}
 set.seed(2022)
-# removing relapse data, since death is the primary outcome
-rotterdam_trn_d <- 
-  rotterdam_training %>% 
-  select(-rtime, -recur, -pid)
 
-cox_trn_x <- model.matrix(Surv(dtime, death) ~ ., rotterdam_trn_d)[,-1]
-cox_trn_y <- Surv(rotterdam_trn_d$dtime, rotterdam_trn_d$death)
+cox_trn_x <- model.matrix(Surv(dtime, death) ~ ., rotterdam_training)[,-1]
+cox_trn_y <- Surv(rotterdam_training$dtime, rotterdam_training$death)
 
 cv_coxfit <- cv.glmnet(cox_trn_x, cox_trn_y, family = "cox", type.measure = "deviance")
 
@@ -109,7 +112,8 @@ coxnetfit_df %>% round(digits = 4) %>%
 In the table above, we can see that the estrogen receptors covariate is selected out with a null value of 0 or $\exp(coef) = 1$. We can fit a cox proportional hazard model using only the selected covariates in the `coxph` function to find unbiased estimates of the coefficients along with standard errors and confidence intervals. 
 
 ```{r coxph confint}
-coxfit <- coxph(Surv(dtime, death) ~ year + age + meno + size + grade + nodes + pgr + hormon + chemo,
+coxfit <- coxph(Surv(dtime, death) ~ year + age + meno + size + grade + 
+                  nodes + pgr + hormon + chemo,
                 data = rotterdam_training, ties = "breslow")
 coxfit %>% 
   broom::tidy() %>% 
@@ -161,16 +165,17 @@ Here we again find significant effects for year of surgery, age at surgery, size
 The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior.
 
 ```{r}
+set.seed(2023)
 ## Random Survival Forest
 rsf <- ranger(Surv(time = dtime, event = death) ~ ., 
-              data = rotterdam_trn_d, 
+              data = rotterdam_training, 
               num.trees = 300, 
               min.node.size = 15)
 
 ## Remove variables not for prediction, and the outcome
 rotterdam_test_d <- 
   rotterdam_test %>% 
-  select(-rtime, -recur, -pid, -death)
+  select(-death)
 
 ## Make prediction on all the test data points
 pred_rsf <- predict(rsf, rotterdam_test_d, type = "response")
@@ -191,7 +196,74 @@ rotterdam_test[7,] %>% knitr::kable(align = "c")
 
 With `ranger` package, we trained the random survival forest with training dataset used for survival prediction. As a non-parametric method, there is no parameters in RSF that could be interpreted. The ultimate goal of RSF is to predict the survival probability function of a given data point based on its covariate vector. Compared to semi-parametric Cox-PH model which forces the outcome and the covariates to have a special connection, the RSF makes prediction based on the survival time of training data points that shares similar propensity with the given input data point.
 
-Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the median survival time is 1163 days.
+Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the median survival time is 1163 days.  
+
+## Comparison of Cox Proportional-Hazards Elastic Net with Random Survival Forest  
+We compared the Cox proportional-hazards elastic net model with the random 
+survival forest by calculating the Brier score for each model on the validation 
+set. The formula for the Brier score is as follows.
+\begin{align*}
+BS = \frac{1}{n} \sum_{i=1}^n (p_i - o_i)^2
+\end{align*}
+The Brier score is used to evaluate the accuracy of probabilistic predictions
+from a model; its value ranges from 0 to 1 with 0 being perfect and 1 being the 
+opposite. We calculated the Brier score using the validation set. For each
+observation in the validation set, predictions were made at the observed time
+of censoring or event. Our analysis proceeds as follows.  
+
+First, we calculated the Brier score for the Cox proportional-hazards
+elastic net model.  
+```{r}
+# Purpose: Calculates the Brier score for the Cox proportional-hazards elastic
+#          net model.
+# Arguments: fit: The Cox proportional-hazards elastic net model.
+#            train: A dataframe, the training data used to fit the model.
+#            test: A dataframe, the data to use to calculate the Brier score.
+# Returns: A double, the Brier score. 
+brier_coxnet <- function(fit, train, test) {
+  train_x <- model.matrix(Surv(dtime, death) ~ ., train)[,-1]
+  train_y <- Surv(pull(train, dtime), pull(train, death))
+  test_x <- model.matrix(Surv(dtime, death) ~ ., test)[,-1]
+  test_y <- pull(test, death)
+  num_obs <- nrow(test_x)
+  p <- vector(mode = "double", length = num_obs)
+  for(i in 1:num_obs) {
+    surv_fit <- survival::survfit(fit, s = cv_coxfit$lambda.min, 
+                                  x = train_x, 
+                                  y = train_y, 
+                                  newx = test_x[i, ])
+    time_index <- tail(which(surv_fit$time <= test[i, "dtime"]), n = 1)
+    p[i] <- 1 - surv_fit$surv[time_index]
+  }
+  return(DescTools::BrierScore(resp = test_y, pred = p))
+}
+(brier_coxnet <- round(brier_coxnet(coxnetfit, rotterdam_training, rotterdam_validation), 3))
+```
+
+The Brier score for the Cox elastic net model is `r brier_coxnet`.  
+
+Second, let's calculated the Brier score for the random survival forest model.  
+```{r}
+# Purpose: Calculates the Brier score for the random survival forest model.
+# Arguments: fit: The random survival forest model.
+#            df: A dataframe, the data to use to calculate the Brier score.
+# Returns: A double, the Brier score. 
+brier_ranger <- function(fit, df) {
+  x <- df
+  pred <-  predict(fit, data = x)
+  num_obs <- nrow(df)
+  p <- vector(mode = "double", length = num_obs)
+  for(i in 1:num_obs) {
+    time_index <- tail(which(pred$unique.death.times <= x[i, "dtime"]), n = 1)
+    p[i] <- 1 - pred$survival[i, time_index]
+  }
+  return(DescTools::BrierScore(resp = df$death, pred = p))
+}
+(brier_ranger <- round(brier_ranger(rsf, rotterdam_validation), 3))
+```
+
+The Brier score for the random survival forest model is `r brier_ranger`. The
+two models have very similar Brier scores.  
 
 ## Conformalized survival analysis
 
