@@ -237,27 +237,19 @@ elastic net model.
 # Purpose: Calculates the Brier score for the Cox proportional-hazards elastic
 #          net model.
 # Arguments: fit: The Cox proportional-hazards elastic net model.
-#            train: A dataframe, the training data used to fit the model.
 #            test: A dataframe, the data to use to calculate the Brier score.
 # Returns: A double, the Brier score. 
-brier_coxnet <- function(fit, train, test) {
-  train_x <- model.matrix(Surv(dtime, death) ~ ., train)[,-1]
-  train_y <- Surv(pull(train, dtime), pull(train, death))
-  test_x <- model.matrix(Surv(dtime, death) ~ ., test)[,-1]
-  test_y <- pull(test, death)
-  num_obs <- nrow(test_x)
+brier_coxnet <- function(fit, test) {
+  num_obs <- nrow(test)
   p <- vector(mode = "double", length = num_obs)
   for(i in 1:num_obs) {
-    surv_fit <- survival::survfit(fit, s = cv_coxfit$lambda.min, 
-                                  x = train_x, 
-                                  y = train_y, 
-                                  newx = test_x[i, ])
+    surv_fit <- survival::survfit(fit, newdata = test[i, ])
     time_index <- tail(which(surv_fit$time <= test[i, "dtime"]), n = 1)
     p[i] <- 1 - surv_fit$surv[time_index]
   }
-  return(DescTools::BrierScore(resp = test_y, pred = p))
+  return(DescTools::BrierScore(resp = pull(test, death), pred = p))
 }
-(brier_coxnet <- round(brier_coxnet(coxnetfit, rotterdam_training, rotterdam_test), 3))
+(brier_coxnet <- round(brier_coxnet(coxfit_1se, rotterdam_test), 3))
 ```
 
 The Brier score for the Cox elastic net model is `r brier_coxnet`.  
