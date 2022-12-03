@@ -8,8 +8,10 @@ author:
   - Benjamin Goebel (bpg2118)
 date: "2022-12-1"
 output:
-    pdf_document:
-    latex_engine: xelatex
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, message=FALSE, warning = FALSE}
