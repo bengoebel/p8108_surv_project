@@ -117,7 +117,7 @@ rotterdam1 <-
 
 ## Log-rank Test - Chemotherapy (Continued)
 
-![](images/lr_chemo.png)
+![](images/lr_chemo.png){width=50%}
 
 ## Log-rank Test - Hormon + Chemotherapy
 
@@ -133,7 +133,7 @@ rotterdam1 <-
   
 ## Log-rank Test - Hormon + Chemotherapy (Continued)
 
-![](images/lr_mix.png)
+![](images/lr_mix.png){width=50%}
 
 - Chemotherapy or Hormon alone does not have treatment effect on breast cancer?
 - Hormon combining with chemotherapy can improve the survival of breast cancer?
