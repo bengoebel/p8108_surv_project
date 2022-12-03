@@ -372,9 +372,9 @@ ggsurvplot(survfit(Surv(dtime,death) ~ hormon, data = rotterdam),
            conf.int = TRUE,
            legend = c("bottom"),
            legend.title = c("Treatment"),
-           legend.labs = c("hormon", "control"),
+           legend.labs = c("hormone", "control"),
            ggtheme = theme_minimal()) +
-  ggtitle("Survival Curve of Hormon and Control group")
+  ggtitle("Survival Curve of Hormone and Control group")
 ```
 
 **Chemo**
