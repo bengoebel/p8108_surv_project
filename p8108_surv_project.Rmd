@@ -343,8 +343,9 @@ logrank1$pvalue
 ggsurvplot(survfit(Surv(dtime,death) ~ trt_label, data = rotterdam1), 
            conf.int = TRUE,
            legend = c("bottom"),
-           legend.title = c("Treatment")) +
-  ggtitle("Survival Curve of Hormon and Control group")
+           legend.title = c("Treatment"),
+           ggtheme = theme_minimal()) +
+  ggtitle("Survival Curve of 4 groups")
 ```
 
 **Hormon**
@@ -362,7 +363,8 @@ ggsurvplot(survfit(Surv(dtime,death) ~ hormon, data = rotterdam),
            conf.int = TRUE,
            legend = c("bottom"),
            legend.title = c("Treatment"),
-           legend.labs = c("hormon", "control")) +
+           legend.labs = c("hormon", "control"),
+           ggtheme = theme_minimal()) +
   ggtitle("Survival Curve of Hormon and Control group")
 ```
 
@@ -379,7 +381,8 @@ ggsurvplot(survfit(Surv(dtime,death) ~ chemo, data = rotterdam),
            conf.int = TRUE,
            legend = c("bottom"),
            legend.title = c("Treatment"),
-           legend.labs = c("chemo", "control")) +
+           legend.labs = c("chemo", "control"),
+           ggtheme = theme_minimal()) +
   ggtitle("Survival Curve of Chemo and Control group")
 ```
 
