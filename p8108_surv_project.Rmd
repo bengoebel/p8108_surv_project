@@ -160,7 +160,7 @@ Here, the regularization procedure removes `meno`, `er`, `hormon` and `chemo`. H
 
 ```{r coxph 1se confint}
 # creating our final model
-coxfit_1se <- coxph(Surv(dtime, death) ~ year + age + size + grade + nodes + pgr +
+coxfit_1se <- coxph(Surv(dtime, death) ~ age + size + grade + nodes + pgr +
                       # adding our treatment variables
                       hormon + chemo,
                 data = rotterdam_training, ties = "breslow")
