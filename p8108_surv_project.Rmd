@@ -27,8 +27,8 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 library(corrplot)
 ```
 
-## Train Validation Test Split
-```{r train validation test split}
+## Train Test Split
+```{r train test split}
 set.seed(2022)
 rotterdam = rotterdam %>% 
   mutate(hormon = as.factor(hormon),
@@ -38,27 +38,6 @@ rotterdam_split <- initial_split(select(rotterdam, -rtime, -recur, -pid),
                                  prop = 0.8, strata = death)
 rotterdam_training <- training(rotterdam_split)
 rotterdam_test <- testing(rotterdam_split)
-
-rotterdam_train_val_split <- initial_split(rotterdam_training, 
-                                           prop = 0.8, strata = death)
-rotterdam_training <- training(rotterdam_train_val_split)
-rotterdam_validation <- testing(rotterdam_train_val_split)
-```
-
-## Perform 10-fold Cross-Validation  
-The output contains 1 row for each fold/repeat. So, 10 folds * 5 repeats = 50
-rows. The split_analysis column is a list column containing a data frame for
-each row with 9 folds combined, and the split_assessment column is a list column 
-containing a data frame for each row with 1 fold.
-```{r cv}
-set.seed(2022)
-
-rotterdam_folds <- vfold_cv(rotterdam_training, v = 10, repeats = 5, 
-                            strata = death)
-
-rotterdam_folds <- rotterdam_folds %>%
-  mutate(split_analysis = map(splits, analysis),
-         split_assessment = map(splits, assessment))
 ```
 
 ## Introduction
@@ -243,15 +222,15 @@ Since the "truth" of test data point (a single survival time) and the prediction
 
 ## Comparison of Cox Proportional-Hazards Elastic Net with Random Survival Forest  
 We compared the Cox proportional-hazards elastic net model with the random 
-survival forest by calculating the Brier score for each model on the validation 
+survival forest by calculating the Brier score for each model on the test data 
 set. The formula for the Brier score is as follows.
 \begin{align*}
 BS = \frac{1}{n} \sum_{i=1}^n (p_i - o_i)^2
 \end{align*}
 The Brier score is used to evaluate the accuracy of probabilistic predictions
 from a model; its value ranges from 0 to 1 with 0 being perfect and 1 being the 
-opposite. We calculated the Brier score using the validation set. For each
-observation in the validation set, predictions were made at the observed time
+opposite. We calculated the Brier score using the test data set. For each
+observation in the test data set, predictions were made at the observed time
 of censoring or event. Our analysis proceeds as follows.  
 
 First, we calculated the Brier score for the Cox proportional-hazards
@@ -280,7 +259,7 @@ brier_coxnet <- function(fit, train, test) {
   }
   return(DescTools::BrierScore(resp = test_y, pred = p))
 }
-(brier_coxnet <- round(brier_coxnet(coxnetfit, rotterdam_training, rotterdam_validation), 3))
+(brier_coxnet <- round(brier_coxnet(coxnetfit, rotterdam_training, rotterdam_test), 3))
 ```
 
 The Brier score for the Cox elastic net model is `r brier_coxnet`.  
@@ -302,7 +281,7 @@ brier_ranger <- function(fit, df) {
   }
   return(DescTools::BrierScore(resp = df$death, pred = p))
 }
-(brier_ranger <- round(brier_ranger(rsf, rotterdam_validation), 3))
+(brier_ranger <- round(brier_ranger(rsf, rotterdam_test), 3))
 ```
 
 The Brier score for the random survival forest model is `r brier_ranger`. The
