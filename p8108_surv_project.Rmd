@@ -20,12 +20,17 @@ library(glmnet)
 library(ranger)
 library(survminer)
 library(arsenal)
+library("Hmisc")
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+library(corrplot)
 ```
 
 ## Train Validation Test Split
 ```{r train validation test split}
 set.seed(2022)
+rotterdam = rotterdam %>% 
+  mutate(hormon = as.factor(hormon),
+         chemo = as.factor(chemo))
 
 rotterdam_split <- initial_split(select(rotterdam, -rtime, -recur, -pid), 
                                  prop = 0.8, strata = death)
@@ -79,15 +84,35 @@ print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death,
 ```
 
 ```{r results='asis'}
+print(summary(tableby(chemo~age+meno+size+grade+nodes+pgr+er+hormon+dtime+death,
+                      rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
+
+```
+
+
+```{r results='asis'}
 print(summary(tableby(~age+meno+size+grade+nodes+pgr+er+chemo+hormon+dtime+death,
                       rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
 
 ```
+
+```{r}
+my_data <- rotterdam[, c(3,4,5,6,7,8,9,10,11,14,15)] %>% 
+  mutate(size = as.numeric(size),
+         chemo = as.numeric(chemo),
+         hormon = as.numeric(hormon))
+
+res <- cor(my_data)
+round(res, 2)
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+```
+
 ## Cross-Validation
 
-## Cox/Cox with elastic net
+## Cox with LASSO
 
-```{r cox elastic net}
+```{r cox lasso}
 set.seed(2022)
 
 cox_trn_x <- model.matrix(Surv(dtime, death) ~ ., rotterdam_training)[,-1]
@@ -102,7 +127,7 @@ coxnetfit <- glmnet(cox_trn_x, cox_trn_y, family = "cox", alpha = 1)
 
 par(mar = c(4,4,5,1))
 plot(coxnetfit, xvar = "lambda",
-     main = "Cox PH Elastic Net Coefficients")
+     main = "Cox PH LASSO Coefficients")
 abline(v = log(cv_coxfit$lambda.min), lty = 2)
 
 coxnetfit_df <- 
@@ -114,7 +139,7 @@ coxnetfit_df <-
 rownames(coxnetfit_df) <- labels(coef(coxnetfit, s = cv_coxfit$lambda.min))[[1]]
 
 coxnetfit_df %>% round(digits = 4) %>% 
-  knitr::kable(caption = "Cox Proportion Hazard Elastic Net Coefficients")
+  knitr::kable(caption = "Cox Proportion Hazard LASSO Coefficients")
 ```
 
 In the table above, we can see that estrogen receptors and chemotherapy are selected out with a null value of 0 or $\exp(coef) = 1$. We can fit a cox proportional hazard model using only the selected covariates in the `coxph` function to find unbiased estimates of the coefficients along with standard errors and confidence intervals. 
@@ -137,7 +162,7 @@ Below, we see the analogous results for a "1se" rule model.
 ```{r cox elastic net 1se}
 par(mar = c(4,4,5,1))
 plot(coxnetfit, xvar = "lambda",
-     main = "Cox PH Elastic Net Coefficients")
+     main = "Cox PH LASSO Coefficients")
 abline(v = log(cv_coxfit$lambda.1se), lty = 2)
 
 coxnetfit_1se_df <- 
@@ -149,13 +174,16 @@ coxnetfit_1se_df <-
 rownames(coxnetfit_1se_df) <- labels(coef(coxnetfit, s = cv_coxfit$lambda.1se))[[1]]
 
 coxnetfit_1se_df %>% round(digits = 4) %>% 
-  knitr::kable(caption = "Cox Proportion Hazard Elastic Net Coefficients (1se)")
+  knitr::kable(caption = "Cox Proportion Hazard LASSO Coefficients (1se)")
 ```
 
-Here, we remove `meno`, `er`, `hormon` and `chemo` and find the following results.
+Here, the regularization procedure removes `meno`, `er`, `hormon` and `chemo`. However, we are still interested in assessing the treatment effects of hormone therapy and chemotherapy, so we will add these back to the model.
 
 ```{r coxph 1se confint}
-coxfit_1se <- coxph(Surv(dtime, death) ~ year + age + size + grade + nodes + pgr,
+# creating our final model
+coxfit_1se <- coxph(Surv(dtime, death) ~ year + age + size + grade + nodes + pgr +
+                      # adding our treatment variables
+                      hormon + chemo,
                 data = rotterdam_training, ties = "breslow")
 coxfit_1se %>% 
   broom::tidy() %>% 
@@ -164,7 +192,7 @@ coxfit_1se %>%
 confint(coxfit_1se) %>% exp() %>% knitr::kable()
 ```
 
-Here we again find significant effects for year of surgery, age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and pgr.
+Here we again find significant effects for year of surgery, age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and pgr. We find non-significant effects for each of the two treatments of interest.
 
 ## Random survival forest
 
