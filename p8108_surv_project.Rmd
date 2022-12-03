@@ -20,12 +20,17 @@ library(glmnet)
 library(ranger)
 library(survminer)
 library(arsenal)
+library("Hmisc")
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+library(corrplot)
 ```
 
 ## Train Validation Test Split
 ```{r train validation test split}
 set.seed(2022)
+rotterdam = rotterdam %>% 
+  mutate(hormon = as.factor(hormon),
+         chemo = as.factor(chemo))
 
 rotterdam_split <- initial_split(select(rotterdam, -rtime, -recur, -pid), 
                                  prop = 0.8, strata = death)
@@ -79,10 +84,30 @@ print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death,
 ```
 
 ```{r results='asis'}
+print(summary(tableby(chemo~age+meno+size+grade+nodes+pgr+er+hormon+dtime+death,
+                      rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
+
+```
+
+
+```{r results='asis'}
 print(summary(tableby(~age+meno+size+grade+nodes+pgr+er+chemo+hormon+dtime+death,
                       rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
 
 ```
+
+```{r}
+my_data <- rotterdam[, c(3,4,5,6,7,8,9,10,11,14,15)] %>% 
+  mutate(size = as.numeric(size),
+         chemo = as.numeric(chemo),
+         hormon = as.numeric(hormon))
+
+res <- cor(my_data)
+round(res, 2)
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+```
+
 ## Cross-Validation
 
 ## Cox with LASSO
