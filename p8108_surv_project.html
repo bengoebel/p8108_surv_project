@@ -2830,12 +2830,12 @@ comparable, here we show the prediction result of the 7th test data
 point (pid = 58). The survival curve has been shown above, and the
 median survival time is 1217 days.</p>
 </div>
-<div id="comparison-of-cox-proportional-hazards-elastic-net-with-random-survival-forest" class="section level2">
-<h2>Comparison of Cox Proportional-Hazards Elastic Net with Random
-Survival Forest</h2>
-<p>We compared the Cox proportional-hazards elastic net model with the
-random survival forest by calculating the Brier score for each model on
-the test data set. The formula for the Brier score is as follows. <span class="math display">\[\begin{align*}
+<div id="comparison-of-cox-proportional-hazards-with-random-survival-forest" class="section level2">
+<h2>Comparison of Cox Proportional-Hazards with Random Survival
+Forest</h2>
+<p>We compared the Cox proportional-hazards model with the random
+survival forest by calculating the Brier score for each model on the
+test data set. The formula for the Brier score is as follows. <span class="math display">\[\begin{align*}
 BS = \frac{1}{n} \sum_{i=1}^n (p_i - o_i)^2
 \end{align*}\]</span> The Brier score is used to evaluate the accuracy
 of probabilistic predictions from a model; its value ranges from 0 to 1
@@ -2844,13 +2844,12 @@ score using the test data set. For each observation in the test data
 set, predictions were made at the observed time of censoring or event.
 Our analysis proceeds as follows.</p>
 <p>First, we calculated the Brier score for the Cox proportional-hazards
-elastic net model.</p>
-<pre class="r"><code># Purpose: Calculates the Brier score for the Cox proportional-hazards elastic
-#          net model.
-# Arguments: fit: The Cox proportional-hazards elastic net model.
+model.</p>
+<pre class="r"><code># Purpose: Calculates the Brier score for the Cox proportional-hazards model.
+# Arguments: fit: The Cox proportional-hazards model.
 #            test: A dataframe, the data to use to calculate the Brier score.
 # Returns: A double, the Brier score. 
-brier_coxnet &lt;- function(fit, test) {
+brier_cox &lt;- function(fit, test) {
   num_obs &lt;- nrow(test)
   p &lt;- vector(mode = &quot;double&quot;, length = num_obs)
   for(i in 1:num_obs) {
@@ -2860,9 +2859,9 @@ brier_coxnet &lt;- function(fit, test) {
   }
   return(DescTools::BrierScore(resp = pull(test, death), pred = p))
 }
-(brier_coxnet &lt;- round(brier_coxnet(coxfit_1se, rotterdam_test), 3))</code></pre>
+(brier_cox &lt;- round(brier_cox(coxfit_1se, rotterdam_test), 3))</code></pre>
 <pre><code>## [1] 0.329</code></pre>
-<p>The Brier score for the Cox elastic net model is 0.329.</p>
+<p>The Brier score for the Cox proportional-hazards model is 0.329.</p>
 <p>Second, let’s calculated the Brier score for the random survival
 forest model.</p>
 <pre class="r"><code># Purpose: Calculates the Brier score for the random survival forest model.
@@ -2883,7 +2882,15 @@ brier_ranger &lt;- function(fit, df) {
 (brier_ranger &lt;- round(brier_ranger(rsf, rotterdam_test), 3))</code></pre>
 <pre><code>## [1] 0.319</code></pre>
 <p>The Brier score for the random survival forest model is 0.319. The
-two models have very similar Brier scores.</p>
+two models have very similar Brier scores. While we did not perform any
+statistical tests, given how close the two values are, it is fair to
+conclude that the Cox proportional-hazards model and the random survival
+forest are comparable in terms of predicting the outcome. However, if
+the goal of an analysis is inference, the semi-parametric Cox
+proportional-hazards model would be preferred to the non-parametric
+random survival forest.</p>
+<p>An alternative metric that could be used in stead of the Brier score
+is the area under the receiver operating characteristic curve.</p>
 </div>
 <div id="conformalized-survival-analysis" class="section level2">
 <h2>Conformalized survival analysis</h2>
