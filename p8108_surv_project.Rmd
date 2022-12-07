@@ -46,7 +46,8 @@ For our target population is hormone treatment an effective therapy in breast ca
 
 ## Methods
 
-The dataset of interest for this analysis comes from the Rotterdam tumor bank, including data from `r nrow(rotterdam)` breast cancer patients. Follow up time for patients varied from just 1 month to as long as 231 months. Several prognostic variables are recorded including year of surgery, age at surgery, menopausal status (pre- or post-), tumor size (mm), differentiation grade, number of positive lymph nodes, progesterone receptors (fmol/l), estrogen receptors (fmol/l), and indicators for hormonal treatment and chemotherapy treatment. The outcome considered in this analysis was patient death.
+The dataset of interest for this analysis comes from the Rotterdam tumor bank, including data from `r nrow(rotterdam)` breast cancer patients. Follow up time for patients varied from just 1 month to as long as 231 months. Several prognostic variables are recorded including year of surgery, age at surgery, menopausal status (pre- or post-), tumor size (mm), differentiation grade, number of positive lymph nodes, progesterone receptors (fmol/l), estrogen receptors (fmol/l), and indicators for hormonal treatment and chemotherapy treatment. The outcome considered in this analysis was patient death. The censoring mechanism is right censoring, which
+we assume to be noninformative.  
 
 As part of this analysis, we consider the Cox Proportional Hazard (Cox PH) model, which allows us to model the hazard ratio based on covariates to understand their impact on the survival function. The Cox PH typically takes the form:
 $$h(t|Z = z) = h_0(t)e^{\beta'z}.$$
@@ -171,11 +172,20 @@ coxfit_1se %>%
 confint(coxfit_1se) %>% exp() %>% knitr::kable()
 ```
 
-Here we again find significant effects for year of surgery, age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and pgr. We find non-significant effects for each of the two treatments of interest.
+Here we again find significant effects for year of surgery, age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and pgr. We find non-significant effects for each of the two treatments of interest.  
+
+The main assumption of this model is that the hazards are proportional between
+subgroups. We can check this assumption by calculating and plotting 
+Schoenfeld residuals, which can be found in the appendix. From the plots we 
+see violations in number of positive lymph nodes and minor violations in age, 
+tumor size, differentiation grade, and progesterone receptors where 0 does not
+lie in the Schoenfeld residual 95% confidence interval.  
 
 ## Random survival forest
 
-The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior.
+The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. This model, being non-parametric, makes no additional 
+assumptions. However, we continue to assume that the censoring is 
+noninformative.  
 
 ```{r}
 set.seed(2023)
@@ -398,7 +408,18 @@ ggsurvplot(survfit(Surv(dtime,death) ~ chemo, data = rotterdam),
 
 ## How our results compare with past research
 
-## Conclusion
+## Conclusion  
+
+## Appendix  
+Calculating and plotting Schoenfeld residuals.  
+```{r}
+plot(cox.zph(coxfit_1se), col = "red")
+```
+
+From these plots, we see violations in number of positive lymph nodes and 
+minor violations in age, tumor size, differentiation grade, and progesterone 
+receptors where 0 does not lie in the Schoenfeld residual 95% confidence 
+interval.   
 
 \newpage
 
