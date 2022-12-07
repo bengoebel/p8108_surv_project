@@ -404,7 +404,22 @@ ggsurvplot(survfit(Surv(dtime,death) ~ chemo, data = rotterdam),
 
 ## Results
 
-## Discussion
+## Discussion  
+
+Hormone therapy and chemotherapy appear to have non-significant treatment 
+effects on outcomes after adjusting for covariates. Tumor size and 
+differentiation grade had the largest magnitude effects on hazard and 
+were significant. The Cox proportional-hazards and random survival forest 
+models performed similarly in predicting the outcome.  
+
+Some limitations are that there was a small sample size for the treated, 
+especially when it comes to treatment subgroup of receiving both chemo and 
+hormone therapy (only 1% of samples). Additionally, being non-parametric, there 
+is no valid inference methods for random survival forest with potential bias for estimated individual survival curve. We ignored remission. Additionally, there
+were some violations in the proportional-hazards assumption for the Cox 
+proportional-hazards model.  
+
+
 
 ## How our results compare with past research
 
