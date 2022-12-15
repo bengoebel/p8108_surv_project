@@ -183,9 +183,7 @@ lie in the Schoenfeld residual 95% confidence interval.
 
 ## Random survival forest
 
-The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. This model, being non-parametric, makes no additional 
-assumptions. However, we continue to assume that the censoring is 
-noninformative.  
+The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. This model, being non-parametric, makes no additional assumptions. However, we continue to assume that the censoring is noninformative.  
 
 ```{r}
 set.seed(2023)
@@ -226,7 +224,7 @@ barplot(sort(ranger::importance(rsf), decreasing = FALSE),
 
 With `ranger` package, we trained the random survival forest with training dataset used for survival prediction. As a non-parametric method, there is no parameters in RSF that could be interpreted. The ultimate goal of RSF is to predict the survival probability function of a given data point based on its covariate vector. Compared to semi-parametric Cox-PH model which forces the outcome and the covariates to have a special connection, the RSF makes prediction based on the survival time of training data points that shares similar propensity with the given input data point.
 
-Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the median survival time is 1217 days.  
+Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the estimated median survival time is 1217 days.  
 
 ## Comparison of Cox Proportional-Hazards with Random Survival Forest  
 We compared the Cox proportional-hazards model with the random 
@@ -293,77 +291,24 @@ model would be preferred to the non-parametric random survival forest.
 An alternative metric that could be used in stead of the Brier score is the
 area under the receiver operating characteristic curve.  
 
-## Conformalized survival analysis
-
 ## Supplemental analyses
 
 ### Kaplan-Meier Survival Estimate
 ```{r}
+# Overall Survival Curve
 KM = survfit(Surv(dtime, death) ~ 1, data = rotterdam)
 plot(KM, conf.int = FALSE, mark.time = TRUE,
      xlab = "Days", ylab = "Survival Probability",
      main = "Kaplan-Meier Survival Estimate", cex.lab = 1.5, cex.main = 1.5)
 ```
 
-```{r}
-# make Kaplan-Meier estimates
-kmfit <- survfit(Surv(dtime, death) ~ hormon, data = rotterdam,type=c("kaplan-meier"))
-# print Kaplan-Meier table 
-#summary(kmfit)
-```
+### Log-rank Tests
 
-```{r}
-plot(kmfit,
-ylab="S(t)",
-xlab="days to death or last follow-up",
-main = "Kaplan Meier estimates of Breast cancer survival by hormonal treatment assignments for rotterdam data",
-col = c("blue","red"))
+To answer the research questions of whether hormone treatment and chemotherapy are effective to breast cancer, the initial step is to test whether the survival probability functions of treatment group and control group are identical with log-rank test. In this report, we conducted 3 log-rank tests.
 
-ggsurvplot(kmfit, conf.int = 0.95, censor= F,title = " KM survival by hormonal treatment assignments",
-           ggtheme = theme_minimal())
-```
+**Hormone Therapy**
 
-
-### Log-rank Test
-
-The null hypothesis of our log-rank test is: $H_0: S_1(t) = S_0(t)$, where $S_1(t)$ is the survival function of hormon treatment group, $S_0(t)$ is the survival function of control group.
-
-**Combined**
-
-```{r}
-# Add 1
-rotterdam1 <- 
-  rotterdam %>% 
-  mutate(
-    trt_label = case_when(
-      hormon == 1 & chemo == 1 ~ "hormon+chemo",
-      hormon == 1 & chemo == 0 ~ "hormon",
-      hormon == 0 & chemo == 1 ~ "chemo",
-      hormon == 0 & chemo == 0 ~ "none"
-    )
-  )
-
-table(rotterdam1$trt_label)
-```
-
-```{r}
-# Add 2
-logrank1 <- survdiff(Surv(dtime, death) ~ trt_label, data = rotterdam1)
-logrank1
-logrank1$pvalue
-```
-
-```{r}
-# Add 3
-ggsurvplot(survfit(Surv(dtime,death) ~ trt_label, data = rotterdam1), 
-           conf.int = TRUE,
-           legend = c("bottom"),
-           legend.title = c("Treatment"),
-           ggtheme = theme_minimal()) +
-  ggtitle("Survival Curve of 4 groups")
-```
-
-**Hormon**
+First, we test whether hormone therapy is effective. The null hypothesis of this test is $H_0: S_1(t) = S_0(t)$, where $S_1(t)$ is the survival function of hormone treatment group, $S_0(t)$ is the survival function of control group, and the alternative hypothesis is $H_1: S_1(t) \ne S_0(t)$.
 
 ```{r}
 logrank2 <- survdiff(Surv(dtime, death) ~ hormon, data = rotterdam)
@@ -371,7 +316,7 @@ logrank2
 logrank2$pvalue
 ```
 
-The test statistic is 23.7, and the corresponding p-value is $1.133^{-6} \ll 0.05$, thus we reject the null and conclude that we are 95% confident that $S_1(t) \ne S_0(t$. And since the test statistic is positive, we can conclude that the hormon treatment is significantly effective to breast cancer.
+The test statistic is 23.7, and the corresponding p-value is $1.133^{-6} \ll 0.05$, thus we reject the null and conclude that we are 95% confident that $S_1(t) \ne S_0(t)$. 
 
 ```{r}
 ggsurvplot(survfit(Surv(dtime,death) ~ hormon, data = rotterdam), 
@@ -383,13 +328,19 @@ ggsurvplot(survfit(Surv(dtime,death) ~ hormon, data = rotterdam),
   ggtitle("Survival Curve of Hormone and Control group")
 ```
 
-**Chemo**
+And based on the survival plot above, we can further conclude that the hormone treatment is  effective to breast cancer on average. 
+
+**Chemotherapy**
+
+Then, we test whether chemotherapy is effective. The null hypothesis of this test is $H_0: S_1(t) = S_0(t)$, similarly, $S_1(t)$ is the survival function of chemo treatment group, $S_0(t)$ is the survival function of control group, and the alternative hypothesis is $H_1: S_1(t) \ne S_0(t)$.
 
 ```{r}
 logrank3 <- survdiff(Surv(dtime, death) ~ chemo, data = rotterdam)
 logrank3
 logrank3$pvalue
 ```
+
+The test statistic is 0.495, and the corresponding p-value is $0.48 > 0.05$, thus we fail to reject the null and conclude that we are 95% confident that $S_1(t) = S_0(t)$. In other words, the chemotherapy is not effective to the treatment of breast cancer. 
 
 ```{r}
 ggsurvplot(survfit(Surv(dtime,death) ~ chemo, data = rotterdam), 
@@ -400,6 +351,59 @@ ggsurvplot(survfit(Surv(dtime,death) ~ chemo, data = rotterdam),
            ggtheme = theme_minimal()) +
   ggtitle("Survival Curve of Chemo and Control group")
 ```
+
+**Combined Analysis**
+
+After testing the effect of hormone and chemotherapy separately, we are interested in whether there are interaction (or confounding) between the two treatments. Hence, we reassign the data into 4 new treatment groups: 1) receive both hormone and chemotherapy; 2) only receive hormone therapy; 3) only receive chemotherapy; and 4) not receiving both of the therapies.
+
+```{r}
+# create new label
+rotterdam1 <- 
+  rotterdam %>% 
+  mutate(
+    trt_label = case_when(
+      hormon == 1 & chemo == 1 ~ "hormon+chemo",
+      hormon == 1 & chemo == 0 ~ "hormon",
+      hormon == 0 & chemo == 1 ~ "chemo",
+      hormon == 0 & chemo == 0 ~ "none"
+    ))
+```
+
+Then we tested the survival function of these 4 groups with log-rank test. Here, the null hypothesis is $H_0: S_1(t) = S_2(t) = S_3(t) = S_4(t)$, corresponding to the survival function of 4 groups; and the alternative hypothesis is: the survival probability function of 4 groups are not identical.
+
+```{r}
+# Combined Log-rank Test
+logrank1 <- survdiff(Surv(dtime, death) ~ trt_label, data = rotterdam1)
+logrank1
+logrank1$pvalue
+```
+
+The test statistics is 40.4, with p-value $8.84^{-9} \ll 0.05$, then reject the null and conclude that the survival function of 4 groups are not identical. But this result is not very meaningful, because we are more interested in the way they are different.
+
+Consequently, we refer to the survival plot:
+
+```{r}
+# Plot
+ggsurvplot(survfit(Surv(dtime,death) ~ trt_label, data = rotterdam1), 
+           conf.int = TRUE,
+           legend = c("bottom"),
+           legend.title = c("Treatment"),
+           ggtheme = theme_minimal()) +
+  ggtitle("Survival Curve of 4 groups")
+```
+
+Based on the plot, it seems like: Hormone therapy or Chemotherapy itself cannot improve the survival of breast cancer, while the combination therapy of Hormone + Chemo can improve the survival. 
+
+Although it is a very interesting finding, but we should question whether this conclusion is valid. According to the summary data shown below, the sample size of hormone+chemo treatment group is only 28, which accounts for 8% of people who receive hormone therapy, and accounts for 1% of the whole dataset. As a result, the survival curve predicted for this combo treatment group can be unconvincing and biased comparing to other treatment groups, which makes the conclusion drawn above to be invalid.
+
+```{r}
+table(rotterdam1$trt_label) %>% knitr::kable(align = 'c')
+```
+
+Although the results drawn from the third plot are not reliable, it is still a discovery that should be highlighted by researchers, since it is a common phenomenon biologically that two drugs can perform treatment effect only when taken together. More clinical trials and statistically analyses are suggested to further explore this issue.
+
+Also, the test results of the first two log-ranks tests should be considered carefully for making decisions, because they didn't adjusted with the baseline covariates, then the observed treatment effects of hormone may be confounded by other covariates.
+
 
 
 ## Results
