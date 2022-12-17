@@ -7,7 +7,7 @@ author:
   - Junzhe Shao (js5959)
   - Benjamin Goebel (bpg2118)
 date: "2022-12-1"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
@@ -47,38 +47,28 @@ In addition to evaluating the effectiveness of different treatments, we will als
 
 # Exploratory Data Analysis
 
-### Table 1: Distribution of covariates between hormone therapy treatment groups
 ```{r hormone therapy eda, results='asis'}
-# TM - maybe we remove the range values and the dtime, death variables? this would reduce length of tables
-print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death,
-                      rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
+print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo,
+                      rotterdam,numeric.stats = "mean", numeric.test = "kwt"),
+              title = "Distribution of covariates between hormone therapy treatment groups"))
 
 ```
 
-We worked on exploratory data analysis of candidate prognostic variables in the breast cancer datasets. Comparing demographic information of patients who accepted hormone therapy to those who did not, those show significant differences in age at surgery, tumor size, tumor grade, number of positive lymph nodes, menopausal status, progesterone receptors, and estrogen receptors. So two groups(received hormone therapy vs did not receive hormone therapy) are clinically different. Covariates were in-balanced.
+We worked on exploratory data analysis of candidate prognostic variables in the breast cancer datasets. Comparing demographic information of patients who accepted hormone therapy to those who did not, those show significant differences in age at surgery, tumor size, tumor grade, number of positive lymph nodes, menopausal status, progesterone receptors, and estrogen receptors. So two groups(received hormone therapy vs did not receive hormone therapy) are clinically different. Covariates were unbalanced.
 
 \newpage
 
-### Table 2: Distribution of covariates between chemotherapy treatment groups
 ```{r chemotherapy eda, results='asis'}
-# TM - maybe we remove the range values and the dtime, death variables? this would reduce length of tables
-print(summary(tableby(chemo~age+meno+size+grade+nodes+pgr+er+hormon+dtime+death,
-                      rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
+print(summary(tableby(chemo~age+meno+size+grade+nodes+pgr+er+hormon,
+                rotterdam,numeric.stats = "mean", numeric.test = "kwt"),
+        title = "Distribution of covariates between chemotherapy treatment groups"))
 
 ```
 
-We got similar results by comparing patients who accepted chemotherapy to patients who did not. Comparing demographic information of patients who received hormone therapy to those who did not, those show significant differences in age at surgery, tumor size,  number of positive lymph nodes, menopausal status, progesterone receptors and estrogen receptors.Two groups(received chemotherapy vs did not receive chemotherapy) are clinically different. Covariates were in-balanced.
-
-```{r results='asis', eval = FALSE}
-# TM - I think we can remove this code chunk. The table here is the same as the total column in the two tables above
-print(summary(tableby(~age+meno+size+grade+nodes+pgr+er+chemo+hormon+dtime+death,
-                      rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
-
-```
-
+We got similar results by comparing patients who accepted chemotherapy to patients who did not. Comparing demographic information of patients who received hormone therapy to those who did not, those show significant differences in age at surgery, tumor size,  number of positive lymph nodes, menopausal status, progesterone receptors and estrogen receptors.Two groups(received chemotherapy vs did not receive chemotherapy) are clinically different. Covariates were unbalanced.
 
 ### Figure 1: Correlation of variables in Rotterdam data set
-```{r correlation}
+```{r correlation, fig.height = 4, fig.width = 6}
 my_data <- rotterdam[, c(3,4,5,6,7,8,9,10,11,14,15)] %>% 
   mutate(size = as.numeric(size),
          chemo = as.numeric(chemo),
@@ -98,11 +88,14 @@ The dataset of interest for this analysis comes from the Rotterdam tumor bank, i
 
 ## Log-rank test
 
-Add description of method... Likely can be added from work
+To investigate our research questions, we first use a non-parametric log-rank test, which makes no distributional assumptions about our data. The log-rank test compares differences between expected and observed events at each event time point, $k$, to derive the following test statistics:
+$$L = \sum_{i = 1}^k (d_{0i} - e_{0i});$$
+$$var(L) = \sum_{i=1}^k \frac{n_{0i}n_{1i}d_i(n_i - d_i)}{n_i^2 (n_i - 1)};$$
+where $L/\sqrt{var(L)} \sim N(0,1)$. A significant result from the log-rank test indicates a statistically significant difference between the two groups. Notably, the log-rank test does not allow us to adjust for covariates or prognostic variables.
 
 ## Regularized Cox Proportional Hazard Model
 
-As part of this analysis, we consider the Cox Proportional Hazard (Cox PH) model, which allows us to model the hazard ratio based on covariates to understand their impact on the survival function. The Cox PH typically takes the form:
+As a further step in this analysis, we consider the Cox Proportional Hazard (Cox PH) model, which allows us to model the hazard ratio based on covariates to understand their impact on the survival function. The Cox PH typically takes the form:
 $$h(t|Z = z) = h_0(t)e^{\beta'z}.$$
 
 In this application, we use the Least Absolute Shrinkage and Selection Operator (LASSO), an application of the $\ell_1$ norm regularization penalty. In the Cox PH framework, this penalty term takes the form of:
@@ -113,7 +106,7 @@ where $\lambda$ represents our penalty coefficient. This penalty helps to avoid 
 
 The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. This model, being non-parametric, makes no additional assumptions. However, we continue to assume that the censoring is non-informative.  
 
-Add a little more description of method, doesn't have to be very long...
+*Add a little more description of method, doesn't have to be very long...*
 
 ## Brier score
 
@@ -127,9 +120,55 @@ The Brier score is used to evaluate the accuracy of probabilistic predictions fr
 
 ## Log-rank test
 
+To answer the research questions of whether hormone treatment and chemotherapy are effective to breast cancer, the initial step is to test whether the survival probability functions of treatment group and control group are identical with log-rank test. In this report, we conducted 3 log-rank tests.
+
+**Hormone Therapy**
+
+First, we test whether hormone therapy is effective. The null hypothesis of this test is $H_0: S_1(t) = S_0(t)$, where $S_1(t)$ is the survival function of hormone treatment group, $S_0(t)$ is the survival function of control group, and the alternative hypothesis is $H_1: S_1(t) \ne S_0(t)$.
+
+```{r log rank hormon}
+logrank2 <- survdiff(Surv(dtime, death) ~ hormon, data = rotterdam)
+logrank2 %>% broom::tidy() %>% knitr::kable(caption = "Log Rank Test of Hormone Therapy")
+```
+
+The test statistic is 23.7, and the corresponding p-value is $1.133^{-6} \ll 0.05$, thus we reject the null and conclude that we are 95% confident that $S_1(t) \ne S_0(t)$.
+
+```{r surv curve hormon, fig.height = 4, fig.width = 6}
+ggsurvplot(survfit(Surv(dtime,death) ~ hormon, data = rotterdam), 
+           conf.int = TRUE,
+           legend = c("bottom"),
+           legend.title = c("Treatment"),
+           legend.labs = c("hormone", "control"),
+           ggtheme = theme_minimal()) +
+  ggtitle("Figure 2: Survival Curve of Hormone and Control group")
+```
+
+And based on the survival plot above, we can further conclude that the hormone treatment is  effective to breast cancer on average.
+
+**Chemotherapy**
+
+Then, we test whether chemotherapy is effective. The null hypothesis of this test is $H_0: S_1(t) = S_0(t)$, similarly, $S_1(t)$ is the survival function of chemo treatment group, $S_0(t)$ is the survival function of control group, and the alternative hypothesis is $H_1: S_1(t) \ne S_0(t)$.
+
+```{r log rank chemo}
+logrank3 <- survdiff(Surv(dtime, death) ~ chemo, data = rotterdam)
+logrank3 %>% broom::tidy() %>% knitr::kable(caption = "Log Rank Test of Chemotherapy")
+```
+
+The test statistic is 0.495, and the corresponding p-value is $0.48 > 0.05$, thus we fail to reject the null and conclude that we are 95% confident that $S_1(t) = S_0(t)$. In other words, the chemotherapy is not effective to the treatment of breast cancer. 
+
+```{r surv curve chemo, fig.height = 4, fig.width = 6}
+ggsurvplot(survfit(Surv(dtime,death) ~ chemo, data = rotterdam), 
+           conf.int = TRUE,
+           legend = c("bottom"),
+           legend.title = c("Treatment"),
+           legend.labs = c("chemo", "control"),
+           ggtheme = theme_minimal()) +
+  ggtitle("Figure 3: Survival Curve of Chemo and Control group")
+```
+
 ## Regularized Cox Proportional Hazard Model
 
-```{r cox lasso cv}
+```{r cox lasso cv, fig.height = 3.5, fig.width = 5, fig.align = 'center'}
 set.seed(2022)
 # preparing for model training
 cox_trn_x <- model.matrix(Surv(dtime, death) ~ ., rotterdam_training)[,-1]
@@ -138,17 +177,17 @@ cox_trn_y <- Surv(rotterdam_training$dtime, rotterdam_training$death)
 cv_coxfit <- cv.glmnet(cox_trn_x, cox_trn_y, family = "cox", type.measure = "deviance")
 
 par(mar = c(4,4,5,1))
-plot(cv_coxfit, main = "Figure X: Cross-Validated Error Plot")
+plot(cv_coxfit, main = "Figure 4: Cross-Validated Error Plot")
 # fitting model with full set of lambda values
 coxnetfit <- glmnet(cox_trn_x, cox_trn_y, family = "cox", alpha = 1)
 ```
 
 In the plot above, we see the results of our cross-validation with the partial likelihood deviance, a measure of error, on the y-axis, and the natural log of the penalty term on the x-axis. The far-left dashed line represents the log($\lambda$) value associated with the model that produced the minimum cross-validation error. The far-right dashed line represents the log($\lambda$) value associated with the "1se" model that results in a cross-validation error one standard error from the minimum. We choose the "1se" model in this application because it increases the penalization on the model, enforces parsimony, and helps to reduce overfitting of our model on the training data set.
 
-```{r cox lasso 1se res}
+```{r cox lasso 1se res, fig.height = 3.5, fig.width = 5, fig.align = 'center'}
 par(mar = c(4,4,5,1))
 plot(coxnetfit, xvar = "lambda",
-     main = "Figure X + 1: Cox PH LASSO Coefficients")
+     main = "Figure 5: Cox PH LASSO Coefficients")
 abline(v = log(cv_coxfit$lambda.1se), lty = 2)
 
 coxnetfit_1se_df <- 
@@ -179,7 +218,7 @@ coxfit_1se <- coxph(Surv(dtime, death) ~ age + size + grade + nodes + pgr +
 #   broom::tidy() %>% 
 #   mutate(estimate = exp(estimate))
 
-confint(coxfit_1se) %>% exp() %>% knitr::kable()
+confint(coxfit_1se) %>% exp() %>% knitr::kable(caption = "95% Confidence Intervals of Final Cox PH Coefficients")
 ```
 
 And we find significant effects for age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and pgr. We find non-significant effects for each of the two treatments of interest.
@@ -188,7 +227,7 @@ The main assumption of this model is that the hazards are proportional between s
 
 ## Randomized Survival Forest
 
-```{r rsf fit and res}
+```{r rsf fit and res, fig.height = 4, fig.width = 6}
 set.seed(2023)
 ## Random Survival Forest
 rsf <- ranger(Surv(time = dtime, event = death) ~ ., 
@@ -209,31 +248,32 @@ pred_rsf <- predict(rsf, rotterdam_test_d, type = "response")
 pred_ref_7 <- data.frame(
   time = pred_rsf$unique.death.times,
   survival = pred_rsf$survival[7,])
-head(pred_ref_7) %>% knitr::kable(align = "c")
+# head(pred_ref_7) %>% knitr::kable(align = "c")
 
 # Variable Importance
 barplot(sort(ranger::importance(rsf), decreasing = FALSE),
         las = 2, horiz = TRUE, cex.names = 0.7,
-        col = colorRampPalette(colors = c("cyan", "blue"))(12))
+        col = colorRampPalette(colors = c("cyan", "blue"))(12),
+        main = "Figure 6: Variable Importance in the Random Survival Forest")
 ```
 
 With `ranger` package, we trained the random survival forest (RSF) with training dataset used for survival prediction. As a non-parametric method, there are no parameters in RSF that could be interpreted. The ultimate goal of RSF is to predict the survival probability function of a given data point based on its covariate vector. Compared to semi-parametric Cox-PH model which forces the outcome and the covariates to have a special connection, the RSF makes prediction based on the survival time of training data points that shares similar propensity with the given input data point.
 
-```{r rsf pred curve}
+```{r rsf pred curve, fig.height = 3.5, fig.width = 5, fig.align = 'center'}
 plot(pred_ref_7$time, pred_ref_7$survival, 
      xlab = "Time", ylab = "Survival Probability",
-     main = "Survival Prediction for Patient 7")
+     main = "Figure 7: Survival Prediction for Patient 7")
 # Find estimated median survival time for individual 7
-head(pred_ref_7[pred_ref_7$survival <= 0.5,]) %>% knitr::kable(align = "c") #1217
+head(pred_ref_7[pred_ref_7$survival <= 0.5,]) %>% knitr::kable(align = "c", caption = "Predicted Median Survival Time of Patient 7") #1217
 # See the truth of individual 7
-rotterdam_test[7,] %>% knitr::kable(align = "c")
+rotterdam_test[7,] %>% knitr::kable(align = "c", caption = "Observed Data for Patient 7")
 ```
 
 Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the estimated median survival time is 1217 days.
 
 ## Brier Score
 
-First, we calculated the Brier score for the Cox proportional-hazards model.  
+First, we calculated the Brier score for the Cox proportional-hazards model by:  
 ```{r cox ph brier}
 # Purpose: Calculates the Brier score for the Cox proportional-hazards model.
 # Arguments: fit: The Cox proportional-hazards model.
@@ -249,12 +289,9 @@ brier_cox <- function(fit, test) {
   }
   return(DescTools::BrierScore(resp = pull(test, death), pred = p))
 }
-(brier_cox <- round(brier_cox(coxfit_1se, rotterdam_test), 3))
+brier_cox <- round(brier_cox(coxfit_1se, rotterdam_test), 3)
 ```
 
-The Brier score for the Cox proportional-hazards model is `r brier_cox`.  
-
-Second, let's calculated the Brier score for the random survival forest model.  
 ```{r rsf brier}
 # Purpose: Calculates the Brier score for the random survival forest model.
 # Arguments: fit: The random survival forest model.
@@ -271,12 +308,65 @@ brier_ranger <- function(fit, df) {
   }
   return(DescTools::BrierScore(resp = df$death, pred = p))
 }
-(brier_ranger <- round(brier_ranger(rsf, rotterdam_test), 3))
+brier_ranger <- round(brier_ranger(rsf, rotterdam_test), 3)
 ```
 
-The Brier score for the random survival forest model is `r brier_ranger`. The two models have very similar Brier scores. While we did not perform any statistical tests, given how close the two values are, it is fair to conclude that the Cox proportional-hazards model and the random survival forest are comparable in terms of predicting the outcome. However, if the goal of an analysis is inference, the semi-parametric Cox proportional-hazards model would be preferred to the non-parametric random survival forest.  
+\begin{align*}
+BS = \frac{1}{n} \sum_{i=1}^n (p_i - o_i)^2;
+\end{align*}
+
+and found the Brier score for the Cox proportional-hazards model to be `r brier_cox`. Second, we found a Brier score for the random survival forest model of `r brier_ranger`. The two models have very similar Brier scores. While we did not perform any statistical tests, given how close the two values are, it is fair to conclude that the Cox proportional-hazards model and the random survival forest are comparable in terms of predicting the outcome. However, if the goal of an analysis is inference, the semi-parametric Cox proportional-hazards model would be preferred to the non-parametric random survival forest.  
 
 An alternative metric that could be used instead of the Brier score is the area under the receiver operating characteristic curve.  
+
+## Post-hoc Analysis
+
+After testing the effect of hormone and chemotherapy separately, we were interested in whether there is interaction (or confounding) between the two treatments. Hence, we reassigned the data into 4 new treatment groups: 1) receive both hormone and chemotherapy; 2) only receive hormone therapy; 3) only receive chemotherapy; and 4) not receiving both of the therapies.
+
+```{r combined therapy setup}
+# create new label
+rotterdam1 <- 
+  rotterdam %>% 
+  mutate(
+    trt_label = case_when(
+      hormon == 1 & chemo == 1 ~ "hormon+chemo",
+      hormon == 1 & chemo == 0 ~ "hormon",
+      hormon == 0 & chemo == 1 ~ "chemo",
+      hormon == 0 & chemo == 0 ~ "none"
+    ))
+```
+
+Then we tested the survival function of these 4 groups with log-rank tests. Here, the null hypothesis is $H_0: S_1(t) = S_2(t) = S_3(t) = S_4(t)$, corresponding to the survival function of 4 groups; and the alternative hypothesis is: the survival probability function of 4 groups are not identical.
+
+```{r combined log rank test}
+# Combined Log-rank Test
+logrank1 <- survdiff(Surv(dtime, death) ~ trt_label, data = rotterdam1)
+logrank1 %>% broom::tidy() %>% knitr::kable(caption = "Log Rank Test of Therapy Combinations")
+```
+
+The test statistics is 40.4, with p-value $8.84^{-9} \ll 0.05$, then we reject the null and conclude that the survival function of 4 groups are not identical. But this result is not very meaningful, because we are more interested in the way they are different.
+
+Consequently, we refer to the survival plot:
+
+```{r surv curve combined, fig.height = 3.5, fig.width = 5, fig.align = 'center'}
+# Plot
+ggsurvplot(survfit(Surv(dtime,death) ~ trt_label, data = rotterdam1), 
+           conf.int = TRUE,
+           legend = c("bottom"),
+           legend.title = c("Treatment"),
+           ggtheme = theme_minimal()) +
+  ggtitle("Figure 8: Survival Curve of 4 groups")
+```
+
+Based on the plot, it seems like: Hormone therapy or Chemotherapy itself cannot improve the survival of breast cancer, while the combination therapy of Hormone + Chemo can improve the survival. 
+
+Although it is a very interesting finding, but we should question whether this conclusion is valid. According to the summary data shown below, the sample size of hormone+chemo treatment group is only 28, which accounts for 8% of people who receive hormone therapy, and accounts for 1% of the whole dataset. As a result, the survival curve predicted for this combo treatment group can be unconvincing and biased comparing to other treatment groups, which makes the conclusion drawn above to be invalid.
+
+```{r treatment freq table}
+table(rotterdam1$trt_label) %>% knitr::kable(align = 'c', caption = "Frequency of Treatments in Sample")
+```
+
+Although the results drawn from the third plot are not reliable, it is still a discovery that should be highlighted by researchers, since it is a common phenomenon biologically that two drugs can perform treatment effect only when taken together. More clinical trials and statistically analyses are suggested to further explore this issue.
 
 # Discussion
 
@@ -291,8 +381,11 @@ proportional-hazards model.
 
 - talk about proportional hazard assumption violation here, ways to mitigate
 
+\newpage
+
 ## Appendix  
-Calculating and plotting Schoenfeld residuals.  
+
+### Figures 9 - 15
 ```{r schoen res, fig.height = 4}
 plot(cox.zph(coxfit_1se), col = "red")
 ```
@@ -300,7 +393,13 @@ plot(cox.zph(coxfit_1se), col = "red")
 From these plots, we see violations in number of positive lymph nodes and 
 minor violations in age, tumor size, differentiation grade, and progesterone 
 receptors where 0 does not lie in the Schoenfeld residual 95% confidence 
-interval.   
+interval.
+
+## References
+
+*---Note this reference is in MLA format---*
+
+Simon, Noah et al. “Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent.” Journal of statistical software vol. 39,5 (2011): 1-13. doi:10.18637/jss.v039.i05
 
 ----- final report ends here, move final report items to sections above this line ------
 
@@ -312,6 +411,8 @@ TM - do we need to explain cross-validation? Seems like it's more important to e
 
 ## Supplemental analyses
 
+TM - do we need to include any of this above? I think we can remove
+
 ### Kaplan-Meier Survival Estimate
 ```{r}
 # Overall Survival Curve
@@ -320,120 +421,3 @@ plot(KM, conf.int = FALSE, mark.time = TRUE,
      xlab = "Days", ylab = "Survival Probability",
      main = "Kaplan-Meier Survival Estimate", cex.lab = 1.5, cex.main = 1.5)
 ```
-
-### Log-rank Tests
-
-To answer the research questions of whether hormone treatment and chemotherapy are effective to breast cancer, the initial step is to test whether the survival probability functions of treatment group and control group are identical with log-rank test. In this report, we conducted 3 log-rank tests.
-
-**Hormone Therapy**
-
-First, we test whether hormone therapy is effective. The null hypothesis of this test is $H_0: S_1(t) = S_0(t)$, where $S_1(t)$ is the survival function of hormone treatment group, $S_0(t)$ is the survival function of control group, and the alternative hypothesis is $H_1: S_1(t) \ne S_0(t)$.
-
-```{r}
-logrank2 <- survdiff(Surv(dtime, death) ~ hormon, data = rotterdam)
-logrank2
-logrank2$pvalue
-```
-
-The test statistic is 23.7, and the corresponding p-value is $1.133^{-6} \ll 0.05$, thus we reject the null and conclude that we are 95% confident that $S_1(t) \ne S_0(t)$. 
-
-```{r}
-ggsurvplot(survfit(Surv(dtime,death) ~ hormon, data = rotterdam), 
-           conf.int = TRUE,
-           legend = c("bottom"),
-           legend.title = c("Treatment"),
-           legend.labs = c("hormone", "control"),
-           ggtheme = theme_minimal()) +
-  ggtitle("Survival Curve of Hormone and Control group")
-```
-
-And based on the survival plot above, we can further conclude that the hormone treatment is  effective to breast cancer on average. 
-
-**Chemotherapy**
-
-Then, we test whether chemotherapy is effective. The null hypothesis of this test is $H_0: S_1(t) = S_0(t)$, similarly, $S_1(t)$ is the survival function of chemo treatment group, $S_0(t)$ is the survival function of control group, and the alternative hypothesis is $H_1: S_1(t) \ne S_0(t)$.
-
-```{r}
-logrank3 <- survdiff(Surv(dtime, death) ~ chemo, data = rotterdam)
-logrank3
-logrank3$pvalue
-```
-
-The test statistic is 0.495, and the corresponding p-value is $0.48 > 0.05$, thus we fail to reject the null and conclude that we are 95% confident that $S_1(t) = S_0(t)$. In other words, the chemotherapy is not effective to the treatment of breast cancer. 
-
-```{r}
-ggsurvplot(survfit(Surv(dtime,death) ~ chemo, data = rotterdam), 
-           conf.int = TRUE,
-           legend = c("bottom"),
-           legend.title = c("Treatment"),
-           legend.labs = c("chemo", "control"),
-           ggtheme = theme_minimal()) +
-  ggtitle("Survival Curve of Chemo and Control group")
-```
-
-**Combined Analysis**
-
-After testing the effect of hormone and chemotherapy separately, we are interested in whether there are interaction (or confounding) between the two treatments. Hence, we reassign the data into 4 new treatment groups: 1) receive both hormone and chemotherapy; 2) only receive hormone therapy; 3) only receive chemotherapy; and 4) not receiving both of the therapies.
-
-```{r}
-# create new label
-rotterdam1 <- 
-  rotterdam %>% 
-  mutate(
-    trt_label = case_when(
-      hormon == 1 & chemo == 1 ~ "hormon+chemo",
-      hormon == 1 & chemo == 0 ~ "hormon",
-      hormon == 0 & chemo == 1 ~ "chemo",
-      hormon == 0 & chemo == 0 ~ "none"
-    ))
-```
-
-Then we tested the survival function of these 4 groups with log-rank test. Here, the null hypothesis is $H_0: S_1(t) = S_2(t) = S_3(t) = S_4(t)$, corresponding to the survival function of 4 groups; and the alternative hypothesis is: the survival probability function of 4 groups are not identical.
-
-```{r}
-# Combined Log-rank Test
-logrank1 <- survdiff(Surv(dtime, death) ~ trt_label, data = rotterdam1)
-logrank1
-logrank1$pvalue
-```
-
-The test statistics is 40.4, with p-value $8.84^{-9} \ll 0.05$, then reject the null and conclude that the survival function of 4 groups are not identical. But this result is not very meaningful, because we are more interested in the way they are different.
-
-Consequently, we refer to the survival plot:
-
-```{r}
-# Plot
-ggsurvplot(survfit(Surv(dtime,death) ~ trt_label, data = rotterdam1), 
-           conf.int = TRUE,
-           legend = c("bottom"),
-           legend.title = c("Treatment"),
-           ggtheme = theme_minimal()) +
-  ggtitle("Survival Curve of 4 groups")
-```
-
-Based on the plot, it seems like: Hormone therapy or Chemotherapy itself cannot improve the survival of breast cancer, while the combination therapy of Hormone + Chemo can improve the survival. 
-
-Although it is a very interesting finding, but we should question whether this conclusion is valid. According to the summary data shown below, the sample size of hormone+chemo treatment group is only 28, which accounts for 8% of people who receive hormone therapy, and accounts for 1% of the whole dataset. As a result, the survival curve predicted for this combo treatment group can be unconvincing and biased comparing to other treatment groups, which makes the conclusion drawn above to be invalid.
-
-```{r}
-table(rotterdam1$trt_label) %>% knitr::kable(align = 'c')
-```
-
-Although the results drawn from the third plot are not reliable, it is still a discovery that should be highlighted by researchers, since it is a common phenomenon biologically that two drugs can perform treatment effect only when taken together. More clinical trials and statistically analyses are suggested to further explore this issue.
-
-Also, the test results of the first two log-ranks tests should be considered carefully for making decisions, because they didn't adjusted with the baseline covariates, then the observed treatment effects of hormone may be confounded by other covariates.
-
-
-## How our results compare with past research
-
-## Conclusion  
-
-
-
-\newpage
-
-## References
-
----Note this reference is in MLA format---
-
-Simon, Noah et al. “Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent.” Journal of statistical software vol. 39,5 (2011): 1-13. doi:10.18637/jss.v039.i05
