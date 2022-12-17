@@ -35,6 +35,8 @@ rotterdam_training <- training(rotterdam_split)
 rotterdam_test <- testing(rotterdam_split)
 ```
 
+\newpage
+
 # Introduction
 
 Breast cancer is a leading cause of cancer-related morbidity and mortality worldwide, and the choice of treatment can have a significant impact on patient outcomes. Hormone therapy and chemotherapy are two common treatment options for breast cancer, but their effectiveness in improving survival may vary depending on the specific characteristics of the patient and the tumor and there is plenty of literature comparing their effectiveness.
@@ -42,8 +44,6 @@ Breast cancer is a leading cause of cancer-related morbidity and mortality world
 In this study, we aim to evaluate the effectiveness of hormone therapy and chemotherapy in improving breast cancer survival for our target population using the data from the Rotterdam tumor bank. Specifically, we will examine the treatment effect and taking into account various patient and tumor characteristics that may be the confounders of the treatment. 
 
 In addition to evaluating the effectiveness of different treatments, we will also compare the performance of non-parametric modeling approaches, such as random forests, to that of semi-parametric approaches, such as the Cox proportional hazards model, in predicting breast cancer survival. Understanding the performance of these different modeling approaches can inform the selection of the most appropriate method for predicting breast cancer survival in different settings.
-
-\newpage
 
 # Exploratory Data Analysis
 
@@ -55,8 +55,6 @@ print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo,
 ```
 
 We worked on exploratory data analysis of candidate prognostic variables in the breast cancer datasets. Comparing demographic information of patients who accepted hormone therapy to those who did not, those show significant differences in age at surgery, tumor size, tumor grade, number of positive lymph nodes, menopausal status, progesterone receptors, and estrogen receptors. So two groups(received hormone therapy vs did not receive hormone therapy) are clinically different. Covariates were unbalanced.
-
-\newpage
 
 ```{r chemotherapy eda, results='asis'}
 print(summary(tableby(chemo~age+meno+size+grade+nodes+pgr+er+hormon,
@@ -227,7 +225,7 @@ The main assumption of this model is that the hazards are proportional between s
 
 ## Randomized Survival Forest
 
-```{r rsf fit and res, fig.height = 4, fig.width = 6}
+```{r rsf fit and res, fig.height = 3.5, fig.width = 6, fig.align = 'center'}
 set.seed(2023)
 ## Random Survival Forest
 rsf <- ranger(Surv(time = dtime, event = death) ~ ., 
@@ -259,10 +257,12 @@ barplot(sort(ranger::importance(rsf), decreasing = FALSE),
 
 With `ranger` package, we trained the random survival forest (RSF) with training dataset used for survival prediction. As a non-parametric method, there are no parameters in RSF that could be interpreted. The ultimate goal of RSF is to predict the survival probability function of a given data point based on its covariate vector. Compared to semi-parametric Cox-PH model which forces the outcome and the covariates to have a special connection, the RSF makes prediction based on the survival time of training data points that shares similar propensity with the given input data point.
 
-```{r rsf pred curve, fig.height = 3.5, fig.width = 5, fig.align = 'center'}
+```{r rsf pred curve, fig.height = 3, fig.width = 4.5, fig.align = 'center'}
 plot(pred_ref_7$time, pred_ref_7$survival, 
      xlab = "Time", ylab = "Survival Probability",
      main = "Figure 7: Survival Prediction for Patient 7")
+```
+```{r rsf pred tables}
 # Find estimated median survival time for individual 7
 head(pred_ref_7[pred_ref_7$survival <= 0.5,]) %>% knitr::kable(align = "c", caption = "Predicted Median Survival Time of Patient 7") #1217
 # See the truth of individual 7
@@ -372,14 +372,19 @@ Although the results drawn from the third plot are not reliable, it is still a d
 
 ## Conclusions
 
-Hormone therapy and chemotherapy appear to have non-significant treatment effects on outcomes after adjusting for covariates. Tumor size and differentiation grade had the largest magnitude effects on hazard and were significant. The Cox proportional-hazards and random survival forest models performed similarly in predicting the outcome.  
-
-Some limitations are that there was a small sample size for the treated, especially when it comes to treatment subgroup of receiving both chemo and hormone therapy (only 1% of samples). Additionally, being non-parametric, there is no valid inference methods for random survival forest with potential bias for estimated individual survival curve. We ignored remission. Additionally, there were some violations in the proportional-hazards assumption for the Cox 
-proportional-hazards model.  
+Hormone therapy and chemotherapy appear to have non-significant treatment effects on outcomes after adjusting for covariates. Tumor size and differentiation grade had the largest magnitude effects on hazard and were significant after adjusting for the covariates chosen using the LASSO regularization method in the Cox Proportional Hazard model. The Cox PH and random survival forest models performed similarly in predicting the outcome. If questions of inference are of interest, we would recommend using the Cox PH model here due to limitations of inference using the random survival forest. However, the non-parametric nature of the random survival forest model may make it more generalizable and more widely applicable to new data.
 
 ## Limitations and Future Work
 
-- talk about proportional hazard assumption violation here, ways to mitigate
+Some limitations are that there was a small sample size for the treated, especially when it comes to treatment subgroup of receiving both chemo and hormone therapy (only 1% of samples). As discussed in the exploratory data analysis, the treatment groups varied significantly on many variables. When looking at our inference and prediction methods, we found violations of the proportional hazard assumptions, which are important for a valid Cox PH model. In future work, we would recommend using a variable to stratify the Cox PH model, particularly number of positive lymph nodes. Alternatively, a time-varying coefficient could be added to the model. The other model of interest, the random survival forest, introduces some amount of bias when estimating individual survival curves. Lastly, in this analysis we ignored remission, however this could provide valuable insight in a future study.
+
+\newpage
+
+## References
+
+*---Note this reference is in MLA format---*
+
+Simon, Noah et al. “Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent.” Journal of statistical software vol. 39,5 (2011): 1-13. doi:10.18637/jss.v039.i05
 
 \newpage
 
@@ -390,16 +395,7 @@ proportional-hazards model.
 plot(cox.zph(coxfit_1se), col = "red")
 ```
 
-From these plots, we see violations in number of positive lymph nodes and 
-minor violations in age, tumor size, differentiation grade, and progesterone 
-receptors where 0 does not lie in the Schoenfeld residual 95% confidence 
-interval.
-
-## References
-
-*---Note this reference is in MLA format---*
-
-Simon, Noah et al. “Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent.” Journal of statistical software vol. 39,5 (2011): 1-13. doi:10.18637/jss.v039.i05
+From these plots, we see violations in number of positive lymph nodes and minor violations in age, tumor size, differentiation grade, and progesterone receptors where 0 does not lie in the Schoenfeld residual 95% confidence interval.
 
 ----- final report ends here, move final report items to sections above this line ------
 
