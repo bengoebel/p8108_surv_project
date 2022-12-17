@@ -7,14 +7,11 @@ author:
   - Junzhe Shao (js5959)
   - Benjamin Goebel (bpg2118)
 date: "2022-12-1"
-output:
-  html_document:
-    code_folding: hide
-    toc: true
-    toc_float: true
+output: pdf_document
 ---
 
-```{r setup, message=FALSE, warning = FALSE}
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, cache = TRUE, echo = FALSE)
 library(survival)
 library(tidyverse)
 library(tidymodels)
@@ -23,11 +20,9 @@ library(ranger)
 library(survminer)
 library(arsenal)
 library("Hmisc")
-knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 library(corrplot)
 ```
 
-## Train Test Split
 ```{r train test split}
 set.seed(2022)
 rotterdam = rotterdam %>% 
@@ -40,109 +35,119 @@ rotterdam_training <- training(rotterdam_split)
 rotterdam_test <- testing(rotterdam_split)
 ```
 
-## Introduction
+# Introduction
 
-For our target population is hormone treatment an effective therapy in breast cancer survival? For our target population, is chemotherapy an effective therapy in breast cancer survival? How do predictions from non-parametric models like the random forest compare to semi-parametric in the Cox proportional hazard model?
+Breast cancer is a leading cause of cancer-related morbidity and mortality worldwide, and the choice of treatment can have a significant impact on patient outcomes. Hormone therapy and chemotherapy are two common treatment options for breast cancer, but their effectiveness in improving survival may vary depending on the specific characteristics of the patient and the tumor and there is plenty of literature comparing their effectiveness.
 
-## Methods
+In this study, we aim to evaluate the effectiveness of hormone therapy and chemotherapy in improving breast cancer survival for our target population using the data from the Rotterdam tumor bank. Specifically, we will examine the treatment effect and taking into account various patient and tumor characteristics that may be the confounders of the treatment. 
 
-The dataset of interest for this analysis comes from the Rotterdam tumor bank, including data from `r nrow(rotterdam)` breast cancer patients. Follow up time for patients varied from just 1 month to as long as 231 months. Several prognostic variables are recorded including year of surgery, age at surgery, menopausal status (pre- or post-), tumor size (mm), differentiation grade, number of positive lymph nodes, progesterone receptors (fmol/l), estrogen receptors (fmol/l), and indicators for hormonal treatment and chemotherapy treatment. The outcome considered in this analysis was patient death. The censoring mechanism is right censoring, which
-we assume to be noninformative.  
+In addition to evaluating the effectiveness of different treatments, we will also compare the performance of non-parametric modeling approaches, such as random forests, to that of semi-parametric approaches, such as the Cox proportional hazards model, in predicting breast cancer survival. Understanding the performance of these different modeling approaches can inform the selection of the most appropriate method for predicting breast cancer survival in different settings.
 
-As part of this analysis, we consider the Cox Proportional Hazard (Cox PH) model, which allows us to model the hazard ratio based on covariates to understand their impact on the survival function. The Cox PH typically takes the form:
-$$h(t|Z = z) = h_0(t)e^{\beta'z}.$$
+\newpage
 
-In this application, we use the elastic net penalty, a mixture of the $\ell_1$ and $\ell_2$ norm regularization penalties. In the Cox PH framework, this penalty term takes the form of:
-$$\lambda\Big(\alpha \sum |\beta_i| + \frac{1}{2}(1 - \alpha)\sum\beta_i^2\Big)$$
-where $\lambda$ represents our penalty coefficient and $\alpha$ is the mixing parameter for the two regularization methods. This penalty helps to avoid over-fitting of our data. The algorithm used here in `glmnet` uses the Breslow approximation to handle ties. For more details on the derivation of this term and the algorithm used to fit the penalized Cox PH model, see Simon et al. (2011).
+# Exploratory Data Analysis
 
-## Exploratory Data Analysis
-```{r results='asis'}
+### Table 1: Distribution of covariates between hormone therapy treatment groups
+```{r hormone therapy eda, results='asis'}
+# TM - maybe we remove the range values and the dtime, death variables? this would reduce length of tables
 print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death,
                       rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
 
 ```
 
-```{r results='asis'}
+Add description here...
+
+\newpage
+
+### Table 2: Distribution of covariates between chemotherapy treatment groups
+```{r chemotherapy eda, results='asis'}
+# TM - maybe we remove the range values and the dtime, death variables? this would reduce length of tables
 print(summary(tableby(chemo~age+meno+size+grade+nodes+pgr+er+hormon+dtime+death,
                       rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
 
 ```
 
+Add description here...
 
-```{r results='asis'}
+```{r results='asis', eval = FALSE}
+# TM - I think we can remove this code chunk. The table here is the same as the total column in the two tables above
 print(summary(tableby(~age+meno+size+grade+nodes+pgr+er+chemo+hormon+dtime+death,
                       rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
 
 ```
 
-```{r}
+### Figure 1: Correlation of variables in Rotterdam data set
+```{r correlation}
 my_data <- rotterdam[, c(3,4,5,6,7,8,9,10,11,14,15)] %>% 
   mutate(size = as.numeric(size),
          chemo = as.numeric(chemo),
          hormon = as.numeric(hormon))
 
 res <- cor(my_data)
-round(res, 2)
+# round(res, 2)
 corrplot(res, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45)
 ```
 
-## Cross-Validation
+Add description here... what stands out?
 
-## Cox with LASSO
+# Methods
 
-```{r cox lasso}
+The dataset of interest for this analysis comes from the Rotterdam tumor bank, including data from `r nrow(rotterdam)` breast cancer patients. Follow up time for patients varied from just 1 month to as long as 231 months. Several prognostic variables are recorded including year of surgery, age at surgery, menopausal status (pre- or post-), tumor size (mm), differentiation grade, number of positive lymph nodes, progesterone receptors (fmol/l), estrogen receptors (fmol/l), and indicators for hormonal treatment and chemotherapy treatment. The outcome considered in this analysis was patient death. The censoring mechanism is right censoring, which we assume to be non-informative.
+
+## Log-rank test
+
+Add description of method... Likely can be added from work
+
+## Regularized Cox Proportional Hazard Model
+
+As part of this analysis, we consider the Cox Proportional Hazard (Cox PH) model, which allows us to model the hazard ratio based on covariates to understand their impact on the survival function. The Cox PH typically takes the form:
+$$h(t|Z = z) = h_0(t)e^{\beta'z}.$$
+
+In this application, we use the Least Absolute Shrinkage and Selection Operator (LASSO), an application of the $\ell_1$ norm regularization penalty. In the Cox PH framework, this penalty term takes the form of:
+$$\lambda \sum |\beta_i|$$
+where $\lambda$ represents our penalty coefficient. This penalty helps to avoid over-fitting of our data in an effort to improve the generalizability of our predictive model in different settings. The algorithm used here in `glmnet` uses the Breslow approximation to handle ties. For more details on the derivation of this term and the algorithm used to fit the penalized Cox PH model, see Simon et al. (2011).
+
+## Random Survival Forest
+
+The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. This model, being non-parametric, makes no additional assumptions. However, we continue to assume that the censoring is non-informative.  
+
+Add a little more description of method, doesn't have to be very long...
+
+## Brier score
+
+We compare the Cox proportional-hazards model with the random survival forest by calculating the Brier score for each model on the test data set. The formula for the Brier score is as follows.
+\begin{align*}
+BS = \frac{1}{n} \sum_{i=1}^n (p_i - o_i)^2
+\end{align*}
+The Brier score is used to evaluate the accuracy of probabilistic predictions from a model; its value ranges from 0 to 1 with 0 being perfect and 1 being the opposite. We calculate the Brier score using the test data set. For each observation in the test data set, predictions are made at the observed time of censoring or event.
+
+# Results
+
+## Log-rank test
+
+## Regularized Cox Proportional Hazard Model
+
+```{r cox lasso cv}
 set.seed(2022)
-
+# preparing for model training
 cox_trn_x <- model.matrix(Surv(dtime, death) ~ ., rotterdam_training)[,-1]
 cox_trn_y <- Surv(rotterdam_training$dtime, rotterdam_training$death)
-
+# showing cv res
 cv_coxfit <- cv.glmnet(cox_trn_x, cox_trn_y, family = "cox", type.measure = "deviance")
 
 par(mar = c(4,4,5,1))
-plot(cv_coxfit, main = "Cross-Validated Error Plot")
-
+plot(cv_coxfit, main = "Figure X: Cross-Validated Error Plot")
+# fitting model with full set of lambda values
 coxnetfit <- glmnet(cox_trn_x, cox_trn_y, family = "cox", alpha = 1)
-
-par(mar = c(4,4,5,1))
-plot(coxnetfit, xvar = "lambda",
-     main = "Cox PH LASSO Coefficients")
-abline(v = log(cv_coxfit$lambda.min), lty = 2)
-
-coxnetfit_df <- 
-  data.frame(
-    "coef" = as.vector(coef(coxnetfit, s = cv_coxfit$lambda.min)),
-    "exp_coef" = as.vector(coef(coxnetfit, s = cv_coxfit$lambda.min)) %>% exp()
-)
-
-rownames(coxnetfit_df) <- labels(coef(coxnetfit, s = cv_coxfit$lambda.min))[[1]]
-
-coxnetfit_df %>% round(digits = 4) %>% 
-  knitr::kable(caption = "Cox Proportion Hazard LASSO Coefficients")
 ```
 
-In the table above, we can see that estrogen receptors and chemotherapy are selected out with a null value of 0 or $\exp(coef) = 1$. We can fit a cox proportional hazard model using only the selected covariates in the `coxph` function to find unbiased estimates of the coefficients along with standard errors and confidence intervals. 
+In the plot above, we see the results of our cross-validation with the partial likelihood deviance, a measure of error, on the y-axis, and the natural log of the penalty term on the x-axis. The far-left dashed line represents the log($\lambda$) value associated with the model that produced the minimum cross-validation error. The far-right dashed line represents the log($\lambda$) value associated with the "1se" model that results in a cross-validation error one standard error from the minimum. We choose the "1se" model in this application because it increases the penalization on the model, enforces parsimony, and helps to reduce overfitting of our model on the training data set.
 
-```{r coxph confint}
-coxfit <- coxph(Surv(dtime, death) ~ year + age + meno + size + grade + 
-                  nodes + pgr + hormon,
-                data = rotterdam_training, ties = "breslow")
-coxfit %>% 
-  broom::tidy() %>% 
-  mutate(estimate = exp(estimate))
-
-confint(coxfit) %>% exp() %>% knitr::kable()
-```
-
-In our (minimum error) model, we find significant effects for year of surgery, age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and progesterone receptors. The largest magnitude effects come from increasing size of tumor.
-
-Below, we see the analogous results for a "1se" rule model.
-
-```{r cox elastic net 1se}
+```{r cox lasso 1se res}
 par(mar = c(4,4,5,1))
 plot(coxnetfit, xvar = "lambda",
-     main = "Cox PH LASSO Coefficients")
+     main = "Figure X + 1: Cox PH LASSO Coefficients")
 abline(v = log(cv_coxfit$lambda.1se), lty = 2)
 
 coxnetfit_1se_df <- 
@@ -152,40 +157,37 @@ coxnetfit_1se_df <-
 )
 
 rownames(coxnetfit_1se_df) <- labels(coef(coxnetfit, s = cv_coxfit$lambda.1se))[[1]]
+```
 
+Figure X + 1 shows the values of each coefficient in the model as the penalty term increases. The dashed line shows the "1se" penalty term, and so the coefficient values at this point can be seen in the model. The cross-validated modeling results are shown below.
+
+```{r cox lasso 1se res table}
 coxnetfit_1se_df %>% round(digits = 4) %>% 
   knitr::kable(caption = "Cox Proportion Hazard LASSO Coefficients (1se)")
 ```
 
-Here, the regularization procedure removes `meno`, `er`, `hormon` and `chemo`. However, we are still interested in assessing the treatment effects of hormone therapy and chemotherapy, so we will add these back to the model.
+Here, the regularization procedure removes `meno`, `er`, `hormon` and `chemo`. However, we are still interested in assessing the treatment effects of hormone therapy and chemotherapy, so we will add these back to fit our final model.
 
-```{r coxph 1se confint}
+```{r cox lasso final model res}
 # creating our final model
 coxfit_1se <- coxph(Surv(dtime, death) ~ age + size + grade + nodes + pgr +
                       # adding our treatment variables
                       hormon + chemo,
                 data = rotterdam_training, ties = "breslow")
-coxfit_1se %>% 
-  broom::tidy() %>% 
-  mutate(estimate = exp(estimate))
+# coxfit_1se %>% 
+#   broom::tidy() %>% 
+#   mutate(estimate = exp(estimate))
 
 confint(coxfit_1se) %>% exp() %>% knitr::kable()
 ```
 
-Here we again find significant effects for year of surgery, age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and pgr. We find non-significant effects for each of the two treatments of interest.  
+And we find significant effects for age at surgery, size of tumor, differentiation grade, number of positive lymph nodes, and pgr. We find non-significant effects for each of the two treatments of interest.
 
-The main assumption of this model is that the hazards are proportional between
-subgroups. We can check this assumption by calculating and plotting 
-Schoenfeld residuals, which can be found in the appendix. From the plots we 
-see violations in number of positive lymph nodes and minor violations in age, 
-tumor size, differentiation grade, and progesterone receptors where 0 does not
-lie in the Schoenfeld residual 95% confidence interval.  
+The main assumption of this model is that the hazards are proportional between subgroups. We can check this assumption by calculating and plotting Schoenfeld residuals, which can be found in the appendix. From the plots we see violations in number of positive lymph nodes and minor violations in age, tumor size, differentiation grade, and progesterone receptors where 0 does not lie in the Schoenfeld residual 95% confidence interval.
 
-## Random survival forest
+## Randomized Survival Forest
 
-The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. This model, being non-parametric, makes no additional assumptions. However, we continue to assume that the censoring is noninformative.  
-
-```{r}
+```{r rsf fit and res}
 set.seed(2023)
 ## Random Survival Forest
 rsf <- ranger(Surv(time = dtime, event = death) ~ ., 
@@ -208,6 +210,15 @@ pred_ref_7 <- data.frame(
   survival = pred_rsf$survival[7,])
 head(pred_ref_7) %>% knitr::kable(align = "c")
 
+# Variable Importance
+barplot(sort(ranger::importance(rsf), decreasing = FALSE),
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan", "blue"))(12))
+```
+
+With `ranger` package, we trained the random survival forest (RSF) with training dataset used for survival prediction. As a non-parametric method, there are no parameters in RSF that could be interpreted. The ultimate goal of RSF is to predict the survival probability function of a given data point based on its covariate vector. Compared to semi-parametric Cox-PH model which forces the outcome and the covariates to have a special connection, the RSF makes prediction based on the survival time of training data points that shares similar propensity with the given input data point.
+
+```{r rsf pred curve}
 plot(pred_ref_7$time, pred_ref_7$survival, 
      xlab = "Time", ylab = "Survival Probability",
      main = "Survival Prediction for Patient 7")
@@ -215,32 +226,14 @@ plot(pred_ref_7$time, pred_ref_7$survival,
 head(pred_ref_7[pred_ref_7$survival <= 0.5,]) %>% knitr::kable(align = "c") #1217
 # See the truth of individual 7
 rotterdam_test[7,] %>% knitr::kable(align = "c")
-
-# Variable Importance
-barplot(sort(ranger::importance(rsf), decreasing = FALSE),
-        las = 2, horiz = TRUE, cex.names = 0.7,
-        col = colorRampPalette(colors = c("cyan", "blue"))(12))
 ```
 
-With `ranger` package, we trained the random survival forest with training dataset used for survival prediction. As a non-parametric method, there is no parameters in RSF that could be interpreted. The ultimate goal of RSF is to predict the survival probability function of a given data point based on its covariate vector. Compared to semi-parametric Cox-PH model which forces the outcome and the covariates to have a special connection, the RSF makes prediction based on the survival time of training data points that shares similar propensity with the given input data point.
+Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the estimated median survival time is 1217 days.
 
-Since the "truth" of test data point (a single survival time) and the prediction we made here (a survival probability function) are not comparable, here we show the prediction result of the 7th test data point (pid = 58). The survival curve has been shown above, and the estimated median survival time is 1217 days.  
-
-## Comparison of Cox Proportional-Hazards with Random Survival Forest  
-We compared the Cox proportional-hazards model with the random 
-survival forest by calculating the Brier score for each model on the test data 
-set. The formula for the Brier score is as follows.
-\begin{align*}
-BS = \frac{1}{n} \sum_{i=1}^n (p_i - o_i)^2
-\end{align*}
-The Brier score is used to evaluate the accuracy of probabilistic predictions
-from a model; its value ranges from 0 to 1 with 0 being perfect and 1 being the 
-opposite. We calculated the Brier score using the test data set. For each
-observation in the test data set, predictions were made at the observed time
-of censoring or event. Our analysis proceeds as follows.  
+## Brier Score
 
 First, we calculated the Brier score for the Cox proportional-hazards model.  
-```{r}
+```{r cox ph brier}
 # Purpose: Calculates the Brier score for the Cox proportional-hazards model.
 # Arguments: fit: The Cox proportional-hazards model.
 #            test: A dataframe, the data to use to calculate the Brier score.
@@ -261,7 +254,7 @@ brier_cox <- function(fit, test) {
 The Brier score for the Cox proportional-hazards model is `r brier_cox`.  
 
 Second, let's calculated the Brier score for the random survival forest model.  
-```{r}
+```{r rsf brier}
 # Purpose: Calculates the Brier score for the random survival forest model.
 # Arguments: fit: The random survival forest model.
 #            df: A dataframe, the data to use to calculate the Brier score.
@@ -280,16 +273,41 @@ brier_ranger <- function(fit, df) {
 (brier_ranger <- round(brier_ranger(rsf, rotterdam_test), 3))
 ```
 
-The Brier score for the random survival forest model is `r brier_ranger`. The
-two models have very similar Brier scores. While we did not perform any 
-statistical tests, given how close the two values are, it is fair to
-conclude that the Cox proportional-hazards model and the random survival 
-forest are comparable in terms of predicting the outcome. However, if the
-goal of an analysis is inference, the semi-parametric Cox proportional-hazards
-model would be preferred to the non-parametric random survival forest.  
+The Brier score for the random survival forest model is `r brier_ranger`. The two models have very similar Brier scores. While we did not perform any statistical tests, given how close the two values are, it is fair to conclude that the Cox proportional-hazards model and the random survival forest are comparable in terms of predicting the outcome. However, if the goal of an analysis is inference, the semi-parametric Cox proportional-hazards model would be preferred to the non-parametric random survival forest.  
 
-An alternative metric that could be used in stead of the Brier score is the
-area under the receiver operating characteristic curve.  
+An alternative metric that could be used instead of the Brier score is the area under the receiver operating characteristic curve.  
+
+# Discussion
+
+## Conclusions
+
+Hormone therapy and chemotherapy appear to have non-significant treatment effects on outcomes after adjusting for covariates. Tumor size and differentiation grade had the largest magnitude effects on hazard and were significant. The Cox proportional-hazards and random survival forest models performed similarly in predicting the outcome.  
+
+Some limitations are that there was a small sample size for the treated, especially when it comes to treatment subgroup of receiving both chemo and hormone therapy (only 1% of samples). Additionally, being non-parametric, there is no valid inference methods for random survival forest with potential bias for estimated individual survival curve. We ignored remission. Additionally, there were some violations in the proportional-hazards assumption for the Cox 
+proportional-hazards model.  
+
+## Limitations and Future Work
+
+- talk about proportional hazard assumption violation here, ways to mitigate
+
+## Appendix  
+Calculating and plotting Schoenfeld residuals.  
+```{r schoen res, fig.height = 4}
+plot(cox.zph(coxfit_1se), col = "red")
+```
+
+From these plots, we see violations in number of positive lymph nodes and 
+minor violations in age, tumor size, differentiation grade, and progesterone 
+receptors where 0 does not lie in the Schoenfeld residual 95% confidence 
+interval.   
+
+----- final report ends here, move final report items to sections above this line ------
+
+\newpage
+
+## Cross-Validation
+
+TM - do we need to explain cross-validation? Seems like it's more important to explain other methods. If we can, let's remove this section.
 
 ## Supplemental analyses
 
@@ -405,40 +423,11 @@ Although the results drawn from the third plot are not reliable, it is still a d
 Also, the test results of the first two log-ranks tests should be considered carefully for making decisions, because they didn't adjusted with the baseline covariates, then the observed treatment effects of hormone may be confounded by other covariates.
 
 
-
-## Results
-
-## Discussion  
-
-Hormone therapy and chemotherapy appear to have non-significant treatment 
-effects on outcomes after adjusting for covariates. Tumor size and 
-differentiation grade had the largest magnitude effects on hazard and 
-were significant. The Cox proportional-hazards and random survival forest 
-models performed similarly in predicting the outcome.  
-
-Some limitations are that there was a small sample size for the treated, 
-especially when it comes to treatment subgroup of receiving both chemo and 
-hormone therapy (only 1% of samples). Additionally, being non-parametric, there 
-is no valid inference methods for random survival forest with potential bias for estimated individual survival curve. We ignored remission. Additionally, there
-were some violations in the proportional-hazards assumption for the Cox 
-proportional-hazards model.  
-
-
-
 ## How our results compare with past research
 
 ## Conclusion  
 
-## Appendix  
-Calculating and plotting Schoenfeld residuals.  
-```{r}
-plot(cox.zph(coxfit_1se), col = "red")
-```
 
-From these plots, we see violations in number of positive lymph nodes and 
-minor violations in age, tumor size, differentiation grade, and progesterone 
-receptors where 0 does not lie in the Schoenfeld residual 95% confidence 
-interval.   
 
 \newpage
 
