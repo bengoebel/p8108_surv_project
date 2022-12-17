@@ -7,7 +7,7 @@ author:
   - Junzhe Shao (js5959)
   - Benjamin Goebel (bpg2118)
 date: "2022-12-1"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
@@ -55,7 +55,7 @@ print(summary(tableby(hormon~age+meno+size+grade+nodes+pgr+er+chemo+dtime+death,
 
 ```
 
-Add description here...
+We worked on exploratory data analysis of candidate prognostic variables in the breast cancer datasets. Comparing demographic information of patients who accepted hormone therapy to those who did not, those show significant differences in age at surgery, tumor size, tumor grade, number of positive lymph nodes, menopausal status, progesterone receptors, and estrogen receptors. So two groups(received hormone therapy vs did not receive hormone therapy) are clinically different. Covariates were in-balanced.
 
 \newpage
 
@@ -67,7 +67,7 @@ print(summary(tableby(chemo~age+meno+size+grade+nodes+pgr+er+hormon+dtime+death,
 
 ```
 
-Add description here...
+We got similar results by comparing patients who accepted chemotherapy to patients who did not. Comparing demographic information of patients who received hormone therapy to those who did not, those show significant differences in age at surgery, tumor size,  number of positive lymph nodes, menopausal status, progesterone receptors and estrogen receptors.Two groups(received chemotherapy vs did not receive chemotherapy) are clinically different. Covariates were in-balanced.
 
 ```{r results='asis', eval = FALSE}
 # TM - I think we can remove this code chunk. The table here is the same as the total column in the two tables above
@@ -75,6 +75,7 @@ print(summary(tableby(~age+meno+size+grade+nodes+pgr+er+chemo+hormon+dtime+death
                       rotterdam,numeric.simplify = TRUE, numeric.test = "kwt")))
 
 ```
+
 
 ### Figure 1: Correlation of variables in Rotterdam data set
 ```{r correlation}
@@ -89,7 +90,7 @@ corrplot(res, type = "upper", order = "hclust",
          tl.col = "black", tl.srt = 45)
 ```
 
-Add description here... what stands out?
+As a correlation analysis was conducted,  the correlation matrix indicates that premenopausal women and young women are moderately correlated to taking chemotherapy. A highly positive correlation between menopausal status and age, and two moderately negative correlations between age and chemotherapy, menopausal status and chemotherapy correspond to clinical practice.
 
 # Methods
 
