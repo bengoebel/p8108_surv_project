@@ -176,3 +176,5 @@ table(rotterdam1$trt_label) %>%
 ![](images/rsf_eg.png)
 
 - Estimated median survival time: 1217 days.
+
+- test
