@@ -102,7 +102,7 @@ where $\lambda$ represents our penalty coefficient. This penalty helps to avoid 
 
 ## Random Survival Forest
 
-The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. This model, being non-parametric, makes no additional assumptions. However, we continue to assume that the censoring is non-informative.  
+The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. Trees are known for their instability, in the sense that small perturbations can induce a large change in their predictive function. Hence, random forests is a ingenious solution to this problem by reducing the variance of a single tree and enlarge the class of models. To obtain a prediction at a given x, the Nelson-Aalen estimates of the cumulative hazard functions at each node are averaged. This model, being non-parametric, makes no additional assumptions. However, we continue to assume that the censoring is non-informative.  
 
 *Add a little more description of method, doesn't have to be very long...*
 
@@ -385,6 +385,8 @@ Some limitations are that there was a small sample size for the treated, especia
 *---Note this reference is in MLA format---*
 
 Simon, Noah et al. “Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent.” Journal of statistical software vol. 39,5 (2011): 1-13. doi:10.18637/jss.v039.i05
+
+Imad Bou-Hamad, Denis Larocque, Hatem Ben-Ameur "A review of survival trees," Statistics Surveys, Statist. Surv. 5(none), 44-71, (2011)
 
 \newpage
 
