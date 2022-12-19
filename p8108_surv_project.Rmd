@@ -6,7 +6,7 @@ author:
   - Tucker Morgan (tlm2152)
   - Junzhe Shao (js5959)
   - Benjamin Goebel (bpg2118)
-date: "2022-12-1"
+date: "2022-12-18"
 output: pdf_document
 ---
 
@@ -110,7 +110,11 @@ We compare the Cox proportional-hazards model with the random survival forest by
 \begin{align*}
 BS = \frac{1}{n} \sum_{i=1}^n (p_i - o_i)^2
 \end{align*}
-The Brier score is used to evaluate the accuracy of probabilistic predictions from a model; its value ranges from 0 to 1 with 0 being perfect and 1 being the opposite. We calculate the Brier score using the test data set. For each observation in the test data set, predictions are made at the observed time of censoring or event.
+The Brier score is used to evaluate the accuracy of probabilistic predictions from a model; its value ranges from 0 to 1 with 0 being perfect and 1 being the opposite. We
+split the data into training and test data sets (80-20 split). We fit the models 
+on the training data set, and we calculate the Brier score using the test data 
+set. For each observation in the test data set, predictions are made at the 
+observed time of censoring or event (Brier 1-3).
 
 # Results
 
@@ -381,6 +385,9 @@ Some limitations are that there was a small sample size for the treated, especia
 ## References
 
 *---Note this reference is in MLA format---*
+
+Brier, Glenn W. "VERIFICATION OF FORCASTS EXPRESSED IN TERMS OF PROBABILITY." 
+*MONTHLY WEATHER REVIEW*, vol. 78, no. 1, 1950, pp. 1-3.
 
 Simon, Noah et al. “Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent.” Journal of statistical software vol. 39,5 (2011): 1-13. doi:10.18637/jss.v039.i05
 
