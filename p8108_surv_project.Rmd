@@ -102,9 +102,7 @@ where $\lambda$ represents our penalty coefficient. This penalty helps to avoid 
 
 ## Random Survival Forest
 
-The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. Trees are known for their instability, in the sense that small perturbations can induce a large change in their predictive function. Hence, random forests is a ingenious solution to this problem by reducing the variance of a single tree and enlarge the class of models. To obtain a prediction at a given x, the Nelson-Aalen estimates of the cumulative hazard functions at each node are averaged. This model, being non-parametric, makes no additional assumptions. However, we continue to assume that the censoring is non-informative.  
-
-*Add a little more description of method, doesn't have to be very long...*
+The survival tree and the corresponding random survival forest (RSF) are highly favorable non-parametric methods when studying survival data. Generally, for a single survival tree, it will assign subjects to groups based on certain splitting rules regarding their covariates, and the subjects in each group will share a similar survival behavior. Trees are known for their instability, in the sense that small perturbations can induce a large change in their predictive function. Hence, random forests is an ingenious solution to this problem by reducing the variance of a single tree and enlarging the class of models. To obtain a prediction at a given x, the Nelson-Aalen estimates of the cumulative hazard functions at each node are averaged. This model, being non-parametric, makes no additional assumptions. However, we continue to assume that the censoring is non-informative.  
 
 ## Brier score
 
@@ -180,7 +178,7 @@ plot(cv_coxfit, main = "Figure 4: Cross-Validated Error Plot")
 coxnetfit <- glmnet(cox_trn_x, cox_trn_y, family = "cox", alpha = 1)
 ```
 
-In the plot above, we see the results of our cross-validation with the partial likelihood deviance, a measure of error, on the y-axis, and the natural log of the penalty term on the x-axis. The far-left dashed line represents the log($\lambda$) value associated with the model that produced the minimum cross-validation error. The far-right dashed line represents the log($\lambda$) value associated with the "1se" model that results in a cross-validation error one standard error from the minimum. We choose the "1se" model in this application because it increases the penalization on the model, enforces parsimony, and helps to reduce overfitting of our model on the training data set.
+In Figure 4, we see the results of our cross-validation with the partial likelihood deviance, a measure of error, on the y-axis, and the natural log of the penalty term on the x-axis. The far-left dashed line represents the log($\lambda$) value associated with the model that produced the minimum cross-validation error. The far-right dashed line represents the log($\lambda$) value associated with the "1se" model that results in a cross-validation error one standard error from the minimum. We choose the "1se" model in this application because it increases the penalization on the model, enforces parsimony, and helps to reduce overfitting of our model on the training data set.
 
 ```{r cox lasso 1se res, fig.height = 3.5, fig.width = 5, fig.align = 'center'}
 par(mar = c(4,4,5,1))
@@ -197,7 +195,7 @@ coxnetfit_1se_df <-
 rownames(coxnetfit_1se_df) <- labels(coef(coxnetfit, s = cv_coxfit$lambda.1se))[[1]]
 ```
 
-Figure X + 1 shows the values of each coefficient in the model as the penalty term increases. The dashed line shows the "1se" penalty term, and so the coefficient values at this point can be seen in the model. The cross-validated modeling results are shown below.
+Figure 5 shows the values of each coefficient in the model as the penalty term increases. The dashed line shows the "1se" penalty term, and so the coefficient values at this point can be seen in the model. The cross-validated modeling results are shown below.
 
 ```{r cox lasso 1se res table}
 coxnetfit_1se_df %>% round(digits = 4) %>% 
@@ -398,24 +396,3 @@ plot(cox.zph(coxfit_1se), col = "red")
 ```
 
 From these plots, we see violations in number of positive lymph nodes and minor violations in age, tumor size, differentiation grade, and progesterone receptors where 0 does not lie in the Schoenfeld residual 95% confidence interval.
-
------ final report ends here, move final report items to sections above this line ------
-
-\newpage
-
-## Cross-Validation
-
-TM - do we need to explain cross-validation? Seems like it's more important to explain other methods. If we can, let's remove this section.
-
-## Supplemental analyses
-
-TM - do we need to include any of this above? I think we can remove
-
-### Kaplan-Meier Survival Estimate
-```{r}
-# Overall Survival Curve
-KM = survfit(Surv(dtime, death) ~ 1, data = rotterdam)
-plot(KM, conf.int = FALSE, mark.time = TRUE,
-     xlab = "Days", ylab = "Survival Probability",
-     main = "Kaplan-Meier Survival Estimate", cex.lab = 1.5, cex.main = 1.5)
-```
