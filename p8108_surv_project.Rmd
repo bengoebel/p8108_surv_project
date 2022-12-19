@@ -384,18 +384,18 @@ Some limitations are that there was a small sample size for the treated, especia
 
 ## References
 
-*---Note this reference is in MLA format---*
+Bou-Hamad, Imad, et al. “A Review of Survival Trees.” Statistics Surveys, vol. 5, no. none, 2011, https://doi.org/10.1214/09-ss047. \
 
-Brier, Glenn W. "VERIFICATION OF FORCASTS EXPRESSED IN TERMS OF PROBABILITY." 
-*MONTHLY WEATHER REVIEW*, vol. 78, no. 1, 1950, pp. 1-3.
+BRIER, GLENN W. “Verification of Forecasts Expressed in Terms of Probability.” Monthly Weather Review, vol. 78, no. 1, 1950, pp. 1–3., https://doi.org/10.1175/1520-0493(1950)078&lt;0001:vofeit&gt;2.0.co;2. \
 
-Simon, Noah et al. “Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent.” Journal of statistical software vol. 39,5 (2011): 1-13. doi:10.18637/jss.v039.i05
+Hortobagyi, Gabriel N., et al. “The Global Breast Cancer Burden: Variations in Epidemiology and Survival.” Clinical Breast Cancer, vol. 6, no. 5, Dec. 2005, pp. 391–401. ScienceDirect, https://doi.org/10.3816/CBC.2005.n.043.\
 
-Imad Bou-Hamad, Denis Larocque, Hatem Ben-Ameur "A review of survival trees," Statistics Surveys, Statist. Surv. 5(none), 44-71, (2011)
+Simon, Noah et al. “Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent.” Journal of statistical software vol. 39,5 (2011): 1-13. doi:10.18637/jss.v039.i05\
 
-Wilcken, Nicholas, et al. “Chemotherapy Alone versus Endocrine Therapy Alone for Metastatic Breast Cancer.” The Cochrane Database of Systematic Reviews, vol. 2003, no. 2, Apr. 2003, p. CD002747. PubMed Central, https://doi.org/10.1002/14651858.CD002747. 
 
-Hortobagyi, Gabriel N., et al. “The Global Breast Cancer Burden: Variations in Epidemiology and Survival.” Clinical Breast Cancer, vol. 6, no. 5, Dec. 2005, pp. 391–401. ScienceDirect, https://doi.org/10.3816/CBC.2005.n.043.
+Wilcken, Nicholas, et al. “Chemotherapy Alone versus Endocrine Therapy Alone for Metastatic Breast Cancer.” The Cochrane Database of Systematic Reviews, vol. 2003, no. 2, Apr. 2003, p. CD002747. PubMed Central, https://doi.org/10.1002/14651858.CD002747. \
+
+
 
 
 
